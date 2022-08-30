@@ -2,7 +2,7 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::ops::{Add, AddAssign};
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct U256([u128; 2]);
 
 impl U256 {
@@ -56,11 +56,9 @@ impl Add for U256 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
         let (low, carry) = self.0[1].overflowing_add(rhs.0[1]);
-        let (mut high, mut overflow) = self.0[0].overflowing_add(rhs.0[0]);
-        assert!(!overflow);
+        let mut high = self.0[0].wrapping_add(rhs.0[0]);
         if carry {
-            (high, overflow) = high.overflowing_add(1);
-            assert!(!overflow);
+            high = high.wrapping_add(1);
         }
         Self([high, low])
     }

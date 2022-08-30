@@ -6,7 +6,7 @@ use std::io::Read;
 
 use crate::types::{Address, Edge, U256};
 
-pub fn read_edges_binary(path: &String) -> Result<HashSet<Edge>, io::Error> {
+pub fn read_edges_binary(path: &String) -> Result<HashMap<Address, Vec<Edge>>, io::Error> {
     let mut f = File::open(path)?;
     let address_index = read_address_index(&mut f)?;
     read_edges(&mut f, &address_index)
@@ -55,15 +55,15 @@ fn read_u256(file: &mut File) -> Result<U256, io::Error> {
 fn read_edges(
     file: &mut File,
     address_index: &HashMap<u32, Address>,
-) -> Result<HashSet<Edge>, io::Error> {
+) -> Result<HashMap<Address, Vec<Edge>>, io::Error> {
     let edge_count = read_u32(file)?;
-    let mut edges = HashSet::new();
+    let mut edges: HashMap<Address, Vec<Edge>> = HashMap::new();
     for _i in 0..edge_count {
         let from = read_address(file, address_index)?;
         let to = read_address(file, address_index)?;
         let token = read_address(file, address_index)?;
         let capacity = read_u256(file)?;
-        edges.insert(Edge {
+        edges.entry(from).or_insert(vec![]).push(Edge {
             from,
             to,
             token,

@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Address([u8; 20]);
 
 impl From<[u8; 20]> for Address {
