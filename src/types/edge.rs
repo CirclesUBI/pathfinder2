@@ -1,5 +1,5 @@
-use crate::address::Address;
-use crate::u256::U256;
+use crate::types::Address;
+use crate::types::U256;
 
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, PartialOrd)]
 pub struct Edge {

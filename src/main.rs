@@ -1,7 +1,6 @@
-mod address;
-mod edge;
+mod flow;
 mod io;
-mod u256;
+mod types;
 
 fn main() {
     let edges = io::read_edges_binary(&String::from("./edges.dat")).expect("Error loading edges.");

@@ -4,9 +4,7 @@ use std::fs::File;
 use std::io;
 use std::io::Read;
 
-use crate::address::Address;
-use crate::edge::Edge;
-use crate::u256::U256;
+use crate::types::{Address, Edge, U256};
 
 pub fn read_edges_binary(path: &String) -> Result<HashSet<Edge>, io::Error> {
     let mut f = File::open(path)?;
