@@ -5,7 +5,11 @@ use std::ops::{Add, AddAssign};
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, PartialOrd)]
 pub struct U256([u128; 2]);
 
-impl U256 {}
+impl U256 {
+    pub fn new(high: u128, low: u128) -> U256 {
+        U256([high, low])
+    }
+}
 
 impl From<u128> for U256 {
     fn from(item: u128) -> Self {
@@ -25,14 +29,22 @@ impl From<&str> for U256 {
             assert!(
                 low_hex.as_bytes().get(0) != Some(&54) && low_hex.as_bytes().get(0) != Some(&43)
             );
-            let low = if low_hex.is_empty() { 0 } else {u128::from_str_radix(low_hex, 16).unwrap()};
+            let low = if low_hex.is_empty() {
+                0
+            } else {
+                u128::from_str_radix(low_hex, 16).unwrap()
+            };
             let high_start = if len >= 2 + 32 + 32 { len - 64 } else { 2 };
             let high_hex = &item[high_start..low_start];
             // disallow + and - prefixes
             assert!(
                 high_hex.as_bytes().get(0) != Some(&54) && high_hex.as_bytes().get(0) != Some(&43)
             );
-            let high = if high_hex.is_empty() { 0 } else { u128::from_str_radix(high_hex, 16).unwrap() };
+            let high = if high_hex.is_empty() {
+                0
+            } else {
+                u128::from_str_radix(high_hex, 16).unwrap()
+            };
             U256([high, low])
         } else {
             todo!("Decimal import");
@@ -71,7 +83,7 @@ impl Display for U256 {
 }
 
 mod test {
-    use super::*;
+    use super::U256;
     #[test]
     fn to_string() {
         assert_eq!(format!("{}", U256::from(0)), "0x0");
@@ -116,5 +128,4 @@ mod test {
             U256::from(u128::MAX) + U256::from(1)
         );
     }
-
 }
