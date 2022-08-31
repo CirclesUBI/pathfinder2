@@ -1,6 +1,6 @@
 use std::fmt::Display;
 use std::fmt::Formatter;
-use std::ops::{Add, AddAssign};
+use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct U256([u128; 2]);
@@ -67,6 +67,27 @@ impl Add for U256 {
 impl AddAssign for U256 {
     fn add_assign(&mut self, rhs: U256) {
         *self = *self + rhs;
+    }
+}
+
+impl Neg for U256 {
+    type Output = Self;
+    fn neg(self) -> Self {
+        let result = U256([!self.0[0], !self.0[1]]);
+        result + U256::from(1)
+    }
+}
+
+impl Sub for U256 {
+    type Output = Self;
+    fn sub(self, rhs: Self) -> Self {
+        self + (-rhs)
+    }
+}
+
+impl SubAssign for U256 {
+    fn sub_assign(&mut self, rhs: Self) {
+        *self = *self - rhs;
     }
 }
 

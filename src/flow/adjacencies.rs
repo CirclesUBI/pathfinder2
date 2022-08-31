@@ -4,7 +4,7 @@ use std::cmp::Reverse;
 use std::collections::HashMap;
 use std::collections::HashSet;
 
-struct Adjacencies<'a> {
+pub struct Adjacencies<'a> {
     edges: &'a HashMap<Address, Vec<Edge>>,
     lazy_adjacencies: HashMap<Node, HashMap<Node, U256>>,
     capacity_adjustments: HashMap<Node, HashMap<Node, U256>>,
@@ -42,12 +42,12 @@ impl<'a> Adjacencies<'a> {
         result
     }
 
-    pub fn adjust_capacity(&mut self, from: Node, to: Node, adjustment: U256) {
+    pub fn adjust_capacity(&mut self, from: &Node, to: &Node, adjustment: U256) {
         *self
             .capacity_adjustments
-            .entry(from)
+            .entry(from.clone())
             .or_default()
-            .entry(to)
+            .entry(to.clone())
             .or_default() += adjustment;
     }
 

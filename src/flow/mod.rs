@@ -1,9 +1,12 @@
-mod adjacencies;
+use crate::types::{Address};
 
-use crate::types::{Address, Edge, U256};
+mod adjacencies;
+mod flow;
 
 #[derive(Eq, PartialEq, Hash, Clone)]
 enum Node {
     Node(Address),
     TokenEdge(Address, Address),
 }
+
+pub use crate::flow::flow::compute_flow;
