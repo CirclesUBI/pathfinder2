@@ -48,7 +48,7 @@ fn read_u256(file: &mut File) -> Result<U256, io::Error> {
     let mut bytes = [0u8; 32];
     file.read_exact(&mut bytes[32 - length..32])?;
     let high = u128::from_be_bytes(*<&[u8; 16]>::try_from(&bytes[0..16]).unwrap());
-    let low = u128::from_be_bytes(*<&[u8; 16]>::try_from(&bytes[0..16]).unwrap());
+    let low = u128::from_be_bytes(*<&[u8; 16]>::try_from(&bytes[16..32]).unwrap());
     Ok(U256::new(high, low))
 }
 

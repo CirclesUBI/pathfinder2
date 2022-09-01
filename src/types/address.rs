@@ -1,3 +1,5 @@
+use std::fmt::{Display, Formatter};
+
 #[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd)]
 pub struct Address([u8; 20]);
 
@@ -16,5 +18,15 @@ impl From<&str> for Address {
             data[i / 2 - 1] = u8::from_str_radix(&item[i..i + 2], 16).unwrap();
         }
         Address(data)
+    }
+}
+
+impl Display for Address {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "0x")?;
+        for b in self.0 {
+            write!(f, "{:02x}", b)?;
+        }
+        Ok(())
     }
 }

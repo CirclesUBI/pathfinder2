@@ -65,11 +65,12 @@ impl<'a> Adjacencies<'a> {
             .entry(from.clone())
             .or_insert_with(|| {
                 let mut result: HashMap<Node, U256> = HashMap::new();
-                for edge in &self.edges[source_address_of(from)] {
+                // Plain edges are (from, to, token) labeled with capacity
+                for edge in self.edges.get(source_address_of(from)).unwrap_or(&vec![]) {
                     match from {
                         Node::Node(_) => {
                             // One edge from "from" to "from x token" with a capacity
-                            // as the max over all contributing edges (the balance of the sender)
+                            // as the max over all "to" addresses (the balance of the sender)
                             result
                                 .entry(pseudo_node(*edge))
                                 .and_modify(|c| {

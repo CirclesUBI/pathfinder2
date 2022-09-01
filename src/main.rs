@@ -1,6 +1,5 @@
 use std::env;
 
-
 mod flow;
 mod io;
 mod types;
@@ -16,6 +15,10 @@ fn main() {
 
     println!("Computing flow {from_str} -> {to_str} using {edges_file}");
     let edges = io::read_edges_binary(edges_file).expect("Error loading edges.");
-    print!("Read {} edges", edges.len());
-    flow::compute_flow(&Address::from(from_str.as_str()), &Address::from(to_str.as_str()), &edges);
+    println!("Read {} edges", edges.len());
+    flow::compute_flow(
+        &Address::from(from_str.as_str()),
+        &Address::from(to_str.as_str()),
+        &edges,
+    );
 }
