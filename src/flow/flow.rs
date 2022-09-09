@@ -5,7 +5,11 @@ use std::cmp::min;
 use std::collections::HashMap;
 use std::collections::VecDeque;
 
-pub fn compute_flow(source: &Address, sink: &Address, edges: &HashMap<Address, Vec<Edge>>) {
+pub fn compute_flow(
+    source: &Address,
+    sink: &Address,
+    edges: &HashMap<Address, Vec<Edge>>,
+) -> String {
     let mut adjacencies = Adjacencies::new(edges);
     let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
 
@@ -39,6 +43,7 @@ pub fn compute_flow(source: &Address, sink: &Address, edges: &HashMap<Address, V
         }
     }
     println!("Max flow: {flow}");
+    flow.to_string()
 }
 
 fn augmenting_path(

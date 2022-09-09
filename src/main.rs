@@ -5,10 +5,15 @@ mod io;
 mod server;
 mod types;
 
-use types::Address;
+use server::Server;
 
 fn main() {
-    server::start(8080);
+    let port = if env::args().len() == 1 {
+        8080
+    } else {
+        env::args().nth(1).unwrap().as_str().parse::<u16>().unwrap()
+    };
+    Server::start(port);
 
     // let args: Vec<String> = env::args().collect();
     // if args.len() != 4 {

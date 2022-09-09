@@ -2,7 +2,6 @@ use crate::flow::Node;
 use crate::types::{Address, Edge, U256};
 use std::cmp::Reverse;
 use std::collections::HashMap;
-use std::collections::HashSet;
 
 pub struct Adjacencies<'a> {
     edges: &'a HashMap<Address, Vec<Edge>>,

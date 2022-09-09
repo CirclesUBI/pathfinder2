@@ -101,6 +101,7 @@ impl Display for U256 {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::U256;
     #[test]
