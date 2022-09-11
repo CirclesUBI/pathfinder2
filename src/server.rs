@@ -83,21 +83,6 @@ impl Server {
 }
 
 fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>> {
-    // let mut buf_reader = BufReader::new(&mut socket);
-    // let http_request: Vec<_> = buf_reader
-    //     .by_ref()
-    //     .lines()
-    //     .map(|result| result.unwrap())
-    //     .take_while(|line| !line.is_empty())
-    //     .collect();
-    // println!("{http_request:?}");
-    // let mut buf = [0; 74];
-    // buf_reader.read_exact(&mut buf)?;
-    // println!("payload: {buf:?}");
-
-    // let response = "HTTP/1.1 200 OK\r\n\r\n";
-
-    // socket.write_all(response.as_bytes()).unwrap();
     let payload = read_payload(socket)?;
     let mut request = json::parse(&String::from_utf8(payload)?)?;
     println!("Request: {request}");

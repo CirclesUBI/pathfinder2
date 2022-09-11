@@ -10,6 +10,22 @@ pub enum Node {
     TokenEdge(Address, Address),
 }
 
+pub fn node_as_address(node: &Node) -> &Address {
+    if let Node::Node(address) = node {
+        address
+    } else {
+        panic!()
+    }
+}
+
+pub fn node_as_token_edge(node: &Node) -> (&Address, &Address) {
+    if let Node::TokenEdge(from, token) = node {
+        (from, token)
+    } else {
+        panic!()
+    }
+}
+
 impl Display for Node {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         match self {
