@@ -35,7 +35,7 @@ pub fn compute_flow(
                         .entry(prev.clone())
                         .or_default()
                         .entry(node.clone())
-                        .or_default() -= new_flow;
+                        .or_default() += new_flow;
                 }
             } else {
                 panic!();
