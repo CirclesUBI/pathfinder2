@@ -42,6 +42,9 @@ pub fn compute_flow(
             }
         }
     }
+
+    // TODO prune
+
     println!("Max flow: {flow}");
     let transfers = extract_transfers(source, sink, &flow, used_edges);
     println!("Num transfers: {}", transfers.len());

@@ -5,15 +5,13 @@ mod io;
 mod server;
 mod types;
 
-use server::Server;
-
 fn main() {
     let port = if env::args().len() == 1 {
         8080
     } else {
         env::args().nth(1).unwrap().as_str().parse::<u16>().unwrap()
     };
-    Server::start(port);
+    server::start_server(port);
 
     // let args: Vec<String> = env::args().collect();
     // if args.len() != 4 {

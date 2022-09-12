@@ -5,17 +5,13 @@ use json::JsonValue;
 use std::collections::HashMap;
 use std::error::Error;
 use std::io::{BufRead, BufReader, Write};
-use std::sync::Arc;
+use std::ops::Deref;
+use std::sync::{Arc, RwLock};
 use std::thread;
 use std::{
     io::Read,
     net::{TcpListener, TcpStream},
 };
-
-pub struct Server {
-    edges: Arc<HashMap<Address, Vec<Edge>>>,
-    //threads: Vec<thread::JoinHandle<()>>,
-}
 
 struct JsonRpcRequest {
     id: JsonValue,
@@ -23,63 +19,64 @@ struct JsonRpcRequest {
     params: JsonValue,
 }
 
-impl Server {
-    pub fn start(port: u16) {
-        let mut server = Server {
-            edges: Arc::new(HashMap::new()),
-            //threads: Vec::new(),
-        };
+type EdgeMap = HashMap<Address, Vec<Edge>>;
 
-        let listener =
-            TcpListener::bind(format!("127.0.0.1:{port}")).expect("Could not create server.");
-        loop {
-            match listener.accept() {
-                Ok((socket, _)) => match server.handle_connection(socket) {
-                    Ok(_) => {}
-                    Err(e) => println!("Error communicating with client: {e}"),
-                },
-                Err(e) => println!("Error accepting connection: {e}"),
-            }
-        }
-    }
+pub fn start_server(port: u16) {
+    let edges: Arc<RwLock<Arc<EdgeMap>>> = Arc::new(RwLock::new(Arc::new(HashMap::new())));
 
-    fn handle_connection(&mut self, mut socket: TcpStream) -> Result<(), Box<dyn Error>> {
-        let request = read_request(&mut socket)?;
-        match request.method.as_str() {
-            "load_edges_binary" => {
-                // TODO do this in its own thread?
-                let edges = read_edges_binary(&request.params["file"].to_string())?;
-                self.edges = Arc::new(edges);
-                socket.write_all(jsonrpc_result(request.id, self.edges.len()).as_bytes())?;
-            }
-            "compute_transfer" => {
-                // TODO limit number of threads
-                let edges = self.edges.clone();
-                let _thread = thread::spawn(move || {
-                    println!("Computing flow");
-                    let flow = flow::compute_flow(
-                        &Address::from(request.params["from"].to_string().as_str()),
-                        &Address::from(request.params["to"].to_string().as_str()),
-                        //&U256::from(request.params["value"].to_string().as_str()),
-                        edges.as_ref(),
-                    );
-                    println!("Computed flow");
-                    // TODO error handling
-                    socket
-                        .write_all(
-                            jsonrpc_result(request.id, json::JsonValue::from(flow)).as_bytes(),
-                        )
-                        .unwrap();
+    let listener =
+        TcpListener::bind(format!("127.0.0.1:{port}")).expect("Could not create server.");
+    loop {
+        let c = edges.clone();
+        match listener.accept() {
+            // TODO limit number of threads
+            Ok((socket, _)) => {
+                thread::spawn(move || {
+                    match handle_connection(c.deref(), socket) {
+                        Ok(()) => {}
+                        Err(e) => {
+                            // TODO respond to the jsonrpc
+                            println!("Error handling connection: {e}");
+                        }
+                    }
                 });
-                //self.threads.push(thread);
             }
-            "cancel" => {}
-            "update_edges" => {}
-            // TODO error handling
-            _ => {}
+            Err(e) => println!("Error accepting connection: {e}"),
         }
-        Ok(())
     }
+}
+
+fn handle_connection(
+    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
+    mut socket: TcpStream,
+) -> Result<(), Box<dyn Error>> {
+    let request = read_request(&mut socket)?;
+    match request.method.as_str() {
+        "load_edges_binary" => {
+            let updated_edges = read_edges_binary(&request.params["file"].to_string())?;
+            let len = updated_edges.len();
+            *edges.write().unwrap() = Arc::new(updated_edges);
+            socket.write_all(jsonrpc_result(request.id, len).as_bytes())?;
+        }
+        "compute_transfer" => {
+            println!("Computing flow");
+            let e = edges.read().unwrap().clone();
+            let flow = flow::compute_flow(
+                &Address::from(request.params["from"].to_string().as_str()),
+                &Address::from(request.params["to"].to_string().as_str()),
+                //&U256::from(request.params["value"].to_string().as_str()),
+                e.as_ref(),
+            );
+            println!("Computed flow");
+            // TODO error handling
+            socket.write_all(jsonrpc_result(request.id, json::JsonValue::from(flow)).as_bytes())?;
+        }
+        "cancel" => {}
+        "update_edges" => {}
+        // TODO error handling
+        _ => {}
+    };
+    Ok(())
 }
 
 fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>> {
