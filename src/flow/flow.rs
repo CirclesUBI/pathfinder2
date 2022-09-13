@@ -115,12 +115,13 @@ fn extract_transfers(
             account_balances.len()
         );
         let edge = next_full_capacity_edge(&mut used_edges, &mut account_balances);
+        assert!(account_balances.contains_key(&edge.from));
         account_balances
             .entry(edge.from)
             .and_modify(|balance| *balance -= edge.capacity);
-        account_balances
+        *account_balances
             .entry(edge.to)
-            .and_modify(|balance| *balance += edge.capacity);
+            .or_default() += edge.capacity;
         account_balances.retain(|_account, balance| balance > &mut U256::from(0));
         used_edges
             .entry(Node::Node(edge.from))
