@@ -1,7 +1,13 @@
-use std::fmt::{Display, Formatter};
+use std::fmt::{Display, Formatter, Debug};
 
-#[derive(Clone, Copy, Debug, Default, Hash, Eq, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Default, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Address([u8; 20]);
+
+impl Debug for Address {
+    fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
+        write!(f, "{}", self)
+    }
+}
 
 impl From<[u8; 20]> for Address {
     fn from(item: [u8; 20]) -> Self {

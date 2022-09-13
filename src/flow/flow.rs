@@ -9,7 +9,7 @@ pub fn compute_flow(
     source: &Address,
     sink: &Address,
     edges: &HashMap<Address, Vec<Edge>>,
-) -> String {
+) -> (U256, Vec<Edge>) {
     let mut adjacencies = Adjacencies::new(edges);
     let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
 
@@ -52,7 +52,7 @@ pub fn compute_flow(
         extract_transfers(source, sink, &flow, used_edges)
     };
     println!("Num transfers: {}", transfers.len());
-    flow.to_string()
+    (flow, transfers)
 }
 
 fn augmenting_path(
@@ -164,4 +164,70 @@ fn next_full_capacity_edge(
         }
     }
     panic!();
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    fn addresses() -> (Address, Address, Address, Address, Address, Address) {
+        (
+            Address::from("0x11C7e86fF693e9032A0F41711b5581a04b26Be2E"),
+            Address::from("0x22cEDde51198D1773590311E2A340DC06B24cB37"),
+            Address::from("0x33cEDde51198D1773590311E2A340DC06B24cB37"),
+            Address::from("0x447EDde51198D1773590311E2A340DC06B24cB37"),
+            Address::from("0x55c16ce62d26fd51582a646e2e30a3267b1e6d7e"),
+            Address::from("0x66c16ce62d26fd51582a646e2e30a3267b1e6d7e"),
+        )
+    }
+    fn build_edges(input: Vec<Edge>) -> HashMap<Address, Vec<Edge>> {
+        let mut output: HashMap<Address, Vec<Edge>> = HashMap::new();
+        for e in input {
+            output.entry(e.from).or_default().push(e);
+        }
+        output
+    }
+
+    #[test]
+    fn direct() {
+        let (a, b, t, ..) = addresses();
+        let edges = build_edges(vec![
+            Edge{from: a, to: b, token: t, capacity: U256::from(10)}
+        ]);
+        let flow = compute_flow(&a, &b, &edges);
+        assert_eq!(flow, (U256::from(10), edges[&a].clone()));
+    }
+
+    #[test]
+    fn one_hop() {
+        let (a, b, c, t1, t2, ..) = addresses();
+        let edges = build_edges(vec![
+            Edge{from: a, to: b, token: t1, capacity: U256::from(10)},
+            Edge{from: b, to: c, token: t2, capacity: U256::from(8)},
+        ]);
+        let flow = compute_flow(&a, &c, &edges);
+        assert_eq!(flow, (U256::from(8), vec![
+            Edge{from: a, to: b, token: t1, capacity: U256::from(8)},
+            Edge{from: b, to: c, token: t2, capacity: U256::from(8)},
+        ]));
+    }
+
+    #[test]
+    fn diamond() {
+        let (a, b, c, d, t1, t2) = addresses();
+        let edges = build_edges(vec![
+            Edge{from: a, to: b, token: t1, capacity: U256::from(10)},
+            Edge{from: a, to: c, token: t2, capacity: U256::from(7)},
+            Edge{from: b, to: d, token: t2, capacity: U256::from(9)},
+            Edge{from: c, to: d, token: t1, capacity: U256::from(8)},
+        ]);
+        let mut flow = compute_flow(&a, &d, &edges);
+        flow.1.sort();
+        assert_eq!(flow, (U256::from(16), vec![
+            Edge{from: a, to: b, token: t1, capacity: U256::from(9)},
+            Edge{from: a, to: c, token: t2, capacity: U256::from(7)},
+            Edge{from: b, to: d, token: t2, capacity: U256::from(9)},
+            Edge{from: c, to: d, token: t1, capacity: U256::from(7)},
+        ]));
+    }
 }

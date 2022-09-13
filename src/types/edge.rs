@@ -1,7 +1,7 @@
 use crate::types::Address;
 use crate::types::U256;
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Ord, PartialOrd)]
 pub struct Edge {
     pub from: Address,
     pub to: Address,

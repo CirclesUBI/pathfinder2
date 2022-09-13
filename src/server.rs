@@ -69,7 +69,7 @@ fn handle_connection(
             );
             println!("Computed flow");
             // TODO error handling
-            socket.write_all(jsonrpc_result(request.id, json::JsonValue::from(flow)).as_bytes())?;
+            socket.write_all(jsonrpc_result(request.id, json::JsonValue::from(flow.0.to_string())).as_bytes())?;
         }
         "cancel" => {}
         "update_edges" => {}
