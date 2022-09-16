@@ -61,7 +61,7 @@ fn handle_connection(
         "compute_transfer" => {
             println!("Computing flow");
             let e = edges.read().unwrap().clone();
-            let flow = flow::compute_flow(
+            let (flow, transfers) = flow::compute_flow(
                 &Address::from(request.params["from"].to_string().as_str()),
                 &Address::from(request.params["to"].to_string().as_str()),
                 //&U256::from(request.params["value"].to_string().as_str()),
@@ -69,7 +69,22 @@ fn handle_connection(
             );
             println!("Computed flow");
             // TODO error handling
-            socket.write_all(jsonrpc_result(request.id, json::JsonValue::from(flow.0.to_string())).as_bytes())?;
+            socket.write_all(
+                jsonrpc_result(
+                    request.id,
+                    json::object! {
+                        flow: flow.to_string(),
+                        final: true,
+                        transfers: transfers.into_iter().map(|e| json::object! {
+                            from: e.from.to_string(),
+                            to: e.to.to_string(),
+                            token: e.token.to_string(),
+                            value: e.capacity.to_string()
+                        }).collect::<Vec<_>>(),
+                    },
+                )
+                .as_bytes(),
+            )?;
         }
         "cancel" => {}
         "update_edges" => {}

@@ -4,6 +4,7 @@ use crate::types::{Address, Edge, U256};
 use std::cmp::min;
 use std::collections::HashMap;
 use std::collections::VecDeque;
+use std::fmt::Write;
 
 pub fn compute_flow(
     source: &Address,
@@ -51,6 +52,9 @@ pub fn compute_flow(
     } else {
         extract_transfers(source, sink, &flow, used_edges)
     };
+    // TODO We can simplify the transfers:
+    // If we have a transfer (A, B, T) and a transfer (B, C, T),
+    // We can always replace both by (A, C, T).
     println!("Num transfers: {}", transfers.len());
     (flow, transfers)
 }
@@ -97,6 +101,35 @@ fn trace(parent: HashMap<Node, Node>, source: &Node, sink: &Node) -> Vec<Node> {
     t
 }
 
+fn to_dot(
+    edges: &HashMap<Node, HashMap<Node, U256>>,
+    account_balances: &HashMap<Address, U256>,
+) -> String {
+    let mut out = String::new();
+    writeln!(out, "digraph used_edges {{").expect("");
+
+    for (address, balance) in account_balances {
+        writeln!(
+            out,
+            "    \"{}\" [label=\"{}: {}\"];",
+            address, address, balance
+        )
+        .expect("");
+    }
+    for (from, out_edges) in edges {
+        for (to, capacity) in out_edges {
+            writeln!(
+                out,
+                "    \"{}\" -> \"{}\" [label=\"{}\"];",
+                from, to, capacity
+            )
+            .expect("");
+        }
+    }
+    writeln!(out, "}}").expect("");
+    out
+}
+
 fn extract_transfers(
     source: &Address,
     sink: &Address,
@@ -105,28 +138,24 @@ fn extract_transfers(
 ) -> Vec<Edge> {
     let mut transfers: Vec<Edge> = Vec::new();
     let mut account_balances: HashMap<Address, U256> = HashMap::new();
-    account_balances.insert(*source, amount.clone());
+    account_balances.insert(*source, *amount);
 
     while !account_balances.is_empty()
-        && (account_balances.len() > 1 || *account_balances.iter().nth(0).unwrap().0 != *sink)
+        && (account_balances.len() > 1 || *account_balances.iter().next().unwrap().0 != *sink)
     {
-        println!(
-            "Finding next transfers. Number of non-zero-balance accounts: {}",
-            account_balances.len()
-        );
-        let edge = next_full_capacity_edge(&mut used_edges, &mut account_balances);
-        assert!(account_balances.contains_key(&edge.from));
+        let edge = next_full_capacity_edge(&used_edges, &account_balances);
+        assert!(account_balances[&edge.from] >= edge.capacity);
         account_balances
             .entry(edge.from)
             .and_modify(|balance| *balance -= edge.capacity);
-        *account_balances
-            .entry(edge.to)
-            .or_default() += edge.capacity;
+        *account_balances.entry(edge.to).or_default() += edge.capacity;
         account_balances.retain(|_account, balance| balance > &mut U256::from(0));
+        assert!(used_edges.contains_key(&Node::TokenEdge(edge.from, edge.token)));
         used_edges
-            .entry(Node::Node(edge.from))
+            .entry(Node::TokenEdge(edge.from, edge.token))
             .and_modify(|outgoing| {
-                outgoing.remove(&Node::TokenEdge(edge.from, edge.token));
+                assert!(outgoing.contains_key(&Node::Node(edge.to)));
+                outgoing.remove(&Node::Node(edge.to));
             });
         transfers.push(edge);
     }
@@ -139,23 +168,17 @@ fn next_full_capacity_edge(
     account_balances: &HashMap<Address, U256>,
 ) -> Edge {
     for (account, balance) in account_balances {
-        println!("Account: {account} - balance: {balance}");
-        for (intermediate, _) in used_edges
+        for intermediate in used_edges
             .get(&Node::Node(*account))
-            .unwrap_or(&HashMap::default())
+            .unwrap_or(&HashMap::new())
+            .keys()
         {
-            let (from, token) = node_as_token_edge(intermediate);
             for (to_node, capacity) in &used_edges[intermediate] {
-                println!(" - used edge to {to_node} with capacity {capacity}");
-                let to = node_as_address(to_node);
-                if *capacity == U256::from(0) {
-                    continue;
-                }
+                let (from, token) = node_as_token_edge(intermediate);
                 if *balance >= *capacity {
-                    println!("Found an edge: {from} -> {to} [{token}] {capacity}");
                     return Edge {
                         from: *from,
-                        to: *to,
+                        to: *node_as_address(to_node),
                         token: *token,
                         capacity: *capacity,
                     };
@@ -191,9 +214,12 @@ mod test {
     #[test]
     fn direct() {
         let (a, b, t, ..) = addresses();
-        let edges = build_edges(vec![
-            Edge{from: a, to: b, token: t, capacity: U256::from(10)}
-        ]);
+        let edges = build_edges(vec![Edge {
+            from: a,
+            to: b,
+            token: t,
+            capacity: U256::from(10),
+        }]);
         let flow = compute_flow(&a, &b, &edges);
         assert_eq!(flow, (U256::from(10), edges[&a].clone()));
     }
@@ -202,32 +228,104 @@ mod test {
     fn one_hop() {
         let (a, b, c, t1, t2, ..) = addresses();
         let edges = build_edges(vec![
-            Edge{from: a, to: b, token: t1, capacity: U256::from(10)},
-            Edge{from: b, to: c, token: t2, capacity: U256::from(8)},
+            Edge {
+                from: a,
+                to: b,
+                token: t1,
+                capacity: U256::from(10),
+            },
+            Edge {
+                from: b,
+                to: c,
+                token: t2,
+                capacity: U256::from(8),
+            },
         ]);
         let flow = compute_flow(&a, &c, &edges);
-        assert_eq!(flow, (U256::from(8), vec![
-            Edge{from: a, to: b, token: t1, capacity: U256::from(8)},
-            Edge{from: b, to: c, token: t2, capacity: U256::from(8)},
-        ]));
+        assert_eq!(
+            flow,
+            (
+                U256::from(8),
+                vec![
+                    Edge {
+                        from: a,
+                        to: b,
+                        token: t1,
+                        capacity: U256::from(8)
+                    },
+                    Edge {
+                        from: b,
+                        to: c,
+                        token: t2,
+                        capacity: U256::from(8)
+                    },
+                ]
+            )
+        );
     }
 
     #[test]
     fn diamond() {
         let (a, b, c, d, t1, t2) = addresses();
         let edges = build_edges(vec![
-            Edge{from: a, to: b, token: t1, capacity: U256::from(10)},
-            Edge{from: a, to: c, token: t2, capacity: U256::from(7)},
-            Edge{from: b, to: d, token: t2, capacity: U256::from(9)},
-            Edge{from: c, to: d, token: t1, capacity: U256::from(8)},
+            Edge {
+                from: a,
+                to: b,
+                token: t1,
+                capacity: U256::from(10),
+            },
+            Edge {
+                from: a,
+                to: c,
+                token: t2,
+                capacity: U256::from(7),
+            },
+            Edge {
+                from: b,
+                to: d,
+                token: t2,
+                capacity: U256::from(9),
+            },
+            Edge {
+                from: c,
+                to: d,
+                token: t1,
+                capacity: U256::from(8),
+            },
         ]);
         let mut flow = compute_flow(&a, &d, &edges);
         flow.1.sort();
-        assert_eq!(flow, (U256::from(16), vec![
-            Edge{from: a, to: b, token: t1, capacity: U256::from(9)},
-            Edge{from: a, to: c, token: t2, capacity: U256::from(7)},
-            Edge{from: b, to: d, token: t2, capacity: U256::from(9)},
-            Edge{from: c, to: d, token: t1, capacity: U256::from(7)},
-        ]));
+        assert_eq!(
+            flow,
+            (
+                U256::from(16),
+                vec![
+                    Edge {
+                        from: a,
+                        to: b,
+                        token: t1,
+                        capacity: U256::from(9)
+                    },
+                    Edge {
+                        from: a,
+                        to: c,
+                        token: t2,
+                        capacity: U256::from(7)
+                    },
+                    Edge {
+                        from: b,
+                        to: d,
+                        token: t2,
+                        capacity: U256::from(9)
+                    },
+                    Edge {
+                        from: c,
+                        to: d,
+                        token: t1,
+                        capacity: U256::from(7)
+                    },
+                ]
+            )
+        );
     }
 }
