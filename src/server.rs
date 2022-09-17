@@ -1,6 +1,6 @@
 use crate::flow;
 use crate::io::read_edges_binary;
-use crate::types::{Address, Edge};
+use crate::types::{Address, Edge, U256};
 use json::JsonValue;
 use std::collections::HashMap;
 use std::error::Error;
@@ -61,52 +61,64 @@ fn handle_connection(
         "compute_transfer" => {
             println!("Computing flow");
             let e = edges.read().unwrap().clone();
-
-            socket.write_all(chunked_header().as_bytes())?;
-            let max_distances = if request.params["iterative"].as_bool().unwrap_or_default() {
-                vec![Some(1), Some(2), None]
-            } else {
-                vec![None]
-            };
-            for max_distance in max_distances {
-                let (flow, transfers) = flow::compute_flow(
-                    &Address::from(request.params["from"].to_string().as_str()),
-                    &Address::from(request.params["to"].to_string().as_str()),
-                    //&U256::from(request.params["value"].to_string().as_str()),
-                    e.as_ref(),
-                    max_distance,
-                );
-                println!(
-                    "Computed flow with max distance {:?}: {}",
-                    max_distance, flow
-                );
-                // TODO error handling
-                socket.write_all(
-                    chunked_response(
-                        &(jsonrpc_result(
-                            request.id.clone(),
-                            json::object! {
-                                flow: flow.to_string(),
-                                final: max_distance.is_none(),
-                                transfers: transfers.into_iter().map(|e| json::object! {
-                                    from: e.from.to_string(),
-                                    to: e.to.to_string(),
-                                    token: e.token.to_string(),
-                                    value: e.capacity.to_string()
-                                }).collect::<Vec<_>>(),
-                            },
-                        ) + "\r\n"),
-                    )
-                    .as_bytes(),
-                )?;
-            }
-            socket.write_all(chunked_close().as_bytes())?;
+            compute_transfer(request, e.as_ref(), socket)?;
         }
         "cancel" => {}
         "update_edges" => {}
         // TODO error handling
         _ => {}
     };
+    Ok(())
+}
+
+fn compute_transfer(
+    request: JsonRpcRequest,
+    edges: &HashMap<Address, Vec<Edge>>,
+    mut socket: TcpStream,
+) -> Result<(), Box<dyn Error>> {
+    socket.write_all(chunked_header().as_bytes())?;
+    let max_distances = if request.params["iterative"].as_bool().unwrap_or_default() {
+        vec![Some(1), Some(2), None]
+    } else {
+        vec![None]
+    };
+    for max_distance in max_distances {
+        let (flow, transfers) = flow::compute_flow(
+            &Address::from(request.params["from"].to_string().as_str()),
+            &Address::from(request.params["to"].to_string().as_str()),
+            edges,
+            if request.params.has_key("value") {
+                U256::from(request.params["value"].to_string().as_str())
+            } else {
+                U256::MAX
+            },
+            max_distance,
+        );
+        println!(
+            "Computed flow with max distance {:?}: {}",
+            max_distance, flow
+        );
+        // TODO error handling
+        socket.write_all(
+            chunked_response(
+                &(jsonrpc_result(
+                    request.id.clone(),
+                    json::object! {
+                        flow: flow.to_string(),
+                        final: max_distance.is_none(),
+                        transfers: transfers.into_iter().map(|e| json::object! {
+                            from: e.from.to_string(),
+                            to: e.to.to_string(),
+                            token: e.token.to_string(),
+                            value: e.capacity.to_string()
+                        }).collect::<Vec<_>>(),
+                    },
+                ) + "\r\n"),
+            )
+            .as_bytes(),
+        )?;
+    }
+    socket.write_all(chunked_close().as_bytes())?;
     Ok(())
 }
 

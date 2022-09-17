@@ -6,9 +6,10 @@ use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 pub struct U256([u128; 2]);
 
 impl U256 {
-    pub fn new(high: u128, low: u128) -> U256 {
+    pub const fn new(high: u128, low: u128) -> U256 {
         U256([high, low])
     }
+    pub const MAX: U256 = U256::new(u128::MAX, u128::MAX);
 }
 
 impl From<u128> for U256 {
