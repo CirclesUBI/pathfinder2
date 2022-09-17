@@ -56,35 +56,51 @@ fn handle_connection(
             let updated_edges = read_edges_binary(&request.params["file"].to_string())?;
             let len = updated_edges.len();
             *edges.write().unwrap() = Arc::new(updated_edges);
-            socket.write_all(jsonrpc_result(request.id, len).as_bytes())?;
+            socket.write_all(jsonrpc_response(request.id, len).as_bytes())?;
         }
         "compute_transfer" => {
             println!("Computing flow");
             let e = edges.read().unwrap().clone();
-            let (flow, transfers) = flow::compute_flow(
-                &Address::from(request.params["from"].to_string().as_str()),
-                &Address::from(request.params["to"].to_string().as_str()),
-                //&U256::from(request.params["value"].to_string().as_str()),
-                e.as_ref(),
-            );
-            println!("Computed flow");
-            // TODO error handling
-            socket.write_all(
-                jsonrpc_result(
-                    request.id,
-                    json::object! {
-                        flow: flow.to_string(),
-                        final: true,
-                        transfers: transfers.into_iter().map(|e| json::object! {
-                            from: e.from.to_string(),
-                            to: e.to.to_string(),
-                            token: e.token.to_string(),
-                            value: e.capacity.to_string()
-                        }).collect::<Vec<_>>(),
-                    },
-                )
-                .as_bytes(),
-            )?;
+
+            socket.write_all(chunked_header().as_bytes())?;
+            let max_distances = if request.params["iterative"].as_bool().unwrap_or_default() {
+                vec![Some(1), Some(2), None]
+            } else {
+                vec![None]
+            };
+            for max_distance in max_distances {
+                let (flow, transfers) = flow::compute_flow(
+                    &Address::from(request.params["from"].to_string().as_str()),
+                    &Address::from(request.params["to"].to_string().as_str()),
+                    //&U256::from(request.params["value"].to_string().as_str()),
+                    e.as_ref(),
+                    max_distance,
+                );
+                println!(
+                    "Computed flow with max distance {:?}: {}",
+                    max_distance, flow
+                );
+                // TODO error handling
+                socket.write_all(
+                    chunked_response(
+                        &(jsonrpc_result(
+                            request.id.clone(),
+                            json::object! {
+                                flow: flow.to_string(),
+                                final: max_distance.is_none(),
+                                transfers: transfers.into_iter().map(|e| json::object! {
+                                    from: e.from.to_string(),
+                                    to: e.to.to_string(),
+                                    token: e.token.to_string(),
+                                    value: e.capacity.to_string()
+                                }).collect::<Vec<_>>(),
+                            },
+                        ) + "\r\n"),
+                    )
+                    .as_bytes(),
+                )?;
+            }
+            socket.write_all(chunked_close().as_bytes())?;
         }
         "cancel" => {}
         "update_edges" => {}
@@ -130,16 +146,36 @@ fn read_payload(socket: &mut TcpStream) -> Result<Vec<u8>, Box<dyn Error>> {
     Ok(payload)
 }
 
-fn jsonrpc_result(id: JsonValue, result: impl Into<json::JsonValue>) -> String {
-    let payload = json::object! {
-        jsonrpc: "2.0",
-        id: id,
-        result: result.into(),
-    }
-    .dump();
+fn jsonrpc_response(id: JsonValue, result: impl Into<json::JsonValue>) -> String {
+    let payload = jsonrpc_result(id, result);
     format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
         payload.len(),
         payload
     )
+}
+
+fn jsonrpc_result(id: JsonValue, result: impl Into<json::JsonValue>) -> String {
+    json::object! {
+        jsonrpc: "2.0",
+        id: id,
+        result: result.into(),
+    }
+    .dump()
+}
+
+fn chunked_header() -> String {
+    "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n".to_string()
+}
+
+fn chunked_response(data: &str) -> String {
+    if data.is_empty() {
+        String::new()
+    } else {
+        format!("{:x}\r\n{}\r\n", data.len(), data)
+    }
+}
+
+fn chunked_close() -> String {
+    "0\r\n\r\n".to_string()
 }

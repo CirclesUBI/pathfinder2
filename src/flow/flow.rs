@@ -10,13 +10,14 @@ pub fn compute_flow(
     source: &Address,
     sink: &Address,
     edges: &HashMap<Address, Vec<Edge>>,
+    max_distance: Option<u64>,
 ) -> (U256, Vec<Edge>) {
     let mut adjacencies = Adjacencies::new(edges);
     let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
 
     let mut flow = U256::default();
     loop {
-        let (new_flow, parents) = augmenting_path(source, sink, &mut adjacencies);
+        let (new_flow, parents) = augmenting_path(source, sink, &mut adjacencies, max_distance);
         if new_flow == U256::default() {
             break;
         }
@@ -63,14 +64,20 @@ fn augmenting_path(
     source: &Address,
     sink: &Address,
     adjacencies: &mut Adjacencies,
+    max_distance: Option<u64>,
 ) -> (U256, Vec<Node>) {
     let mut parent = HashMap::new();
     if *source == *sink {
         return (U256::default(), vec![]);
     }
-    let mut queue = VecDeque::<(Node, U256)>::new();
-    queue.push_back((Node::Node(*source), U256::default() - U256::from(1)));
-    while let Some((node, flow)) = queue.pop_front() {
+    let mut queue = VecDeque::<(Node, (u64, U256))>::new();
+    queue.push_back((Node::Node(*source), (0, U256::default() - U256::from(1))));
+    while let Some((node, (depth, flow))) = queue.pop_front() {
+        if let Some(max) = max_distance {
+            if depth >= max {
+                continue;
+            }
+        }
         for (target, capacity) in adjacencies.outgoing_edges_sorted_by_capacity(&node) {
             if !parent.contains_key(&target) && capacity > U256::default() {
                 parent.insert(target.clone(), node.clone());
@@ -81,7 +88,7 @@ fn augmenting_path(
                         trace(parent, &Node::Node(*source), &Node::Node(*sink)),
                     );
                 }
-                queue.push_back((target, new_flow));
+                queue.push_back((target, (depth + 1, new_flow)));
             }
         }
     }
@@ -220,7 +227,7 @@ mod test {
             token: t,
             capacity: U256::from(10),
         }]);
-        let flow = compute_flow(&a, &b, &edges);
+        let flow = compute_flow(&a, &b, &edges, None);
         assert_eq!(flow, (U256::from(10), edges[&a].clone()));
     }
 
@@ -241,7 +248,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let flow = compute_flow(&a, &c, &edges);
+        let flow = compute_flow(&a, &c, &edges, None);
         assert_eq!(
             flow,
             (
@@ -293,7 +300,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges);
+        let mut flow = compute_flow(&a, &d, &edges, None);
         flow.1.sort();
         assert_eq!(
             flow,

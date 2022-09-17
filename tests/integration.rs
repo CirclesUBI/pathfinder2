@@ -10,6 +10,7 @@ fn test_flow() {
         &Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37"),
         //&Address::from("0x9f5ff18027adbb65a53086cdc09d12ce463dae0b"),
         &edges,
+        None,
     );
     println!("{:?}", transfers);
 }
