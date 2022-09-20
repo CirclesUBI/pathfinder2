@@ -11,7 +11,7 @@ fn main() {
     } else {
         env::args().nth(1).unwrap().as_str().parse::<u16>().unwrap()
     };
-    server::start_server(port);
+    server::start_server(port, 10, 4);
 
     // let args: Vec<String> = env::args().collect();
     // if args.len() != 4 {

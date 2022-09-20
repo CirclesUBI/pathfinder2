@@ -287,16 +287,14 @@ fn smallest_edge_from(
     used_edges: &HashMap<Node, HashMap<Node, U256>>,
     n: &Node,
 ) -> Option<(Node, U256)> {
-    used_edges
-        .get(n)
-        .and_then(|out| {
-            out.iter()
-                .min_by_key(|(_, c)| {
-                    assert!(**c != U256::from(0));
-                    *c
-                })
-                .map(|(t, c)| (t.clone(), *c))
-        })
+    used_edges.get(n).and_then(|out| {
+        out.iter()
+            .min_by_key(|(_, c)| {
+                assert!(**c != U256::from(0));
+                *c
+            })
+            .map(|(t, c)| (t.clone(), *c))
+    })
 }
 
 fn smallest_edge_to(

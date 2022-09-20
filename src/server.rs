@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::error::Error;
 use std::io::{BufRead, BufReader, Write};
 use std::ops::Deref;
-use std::sync::{Arc, RwLock};
+use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread;
 use std::{
     io::Read,
@@ -21,26 +21,35 @@ struct JsonRpcRequest {
 
 type EdgeMap = HashMap<Address, Vec<Edge>>;
 
-pub fn start_server(port: u16) {
+pub fn start_server(port: u16, queue_size: usize, threads: u64) {
     let edges: Arc<RwLock<Arc<EdgeMap>>> = Arc::new(RwLock::new(Arc::new(HashMap::new())));
 
+    let (sender, receiver) = mpsc::sync_channel(queue_size);
+    let protected_receiver = Arc::new(Mutex::new(receiver));
+    for _ in 0..threads {
+        let rec = protected_receiver.clone();
+        let e = edges.clone();
+        thread::spawn(move || {
+            loop {
+                let socket = rec.lock().unwrap().recv().unwrap();
+                match handle_connection(e.deref(), socket) {
+                    Ok(()) => {}
+                    Err(e) => {
+                        // TODO respond to the jsonrpc
+                        println!("Error handling connection: {e}");
+                    }
+                }
+            }
+        });
+    }
     let listener =
         TcpListener::bind(format!("127.0.0.1:{port}")).expect("Could not create server.");
     loop {
-        let c = edges.clone();
         match listener.accept() {
-            // TODO limit number of threads
-            Ok((socket, _)) => {
-                thread::spawn(move || {
-                    match handle_connection(c.deref(), socket) {
-                        Ok(()) => {}
-                        Err(e) => {
-                            // TODO respond to the jsonrpc
-                            println!("Error handling connection: {e}");
-                        }
-                    }
-                });
-            }
+            Ok((socket, _)) => match sender.try_send(socket) {
+                Ok(()) => {}
+                Err(e) => println!("Queue full: {e}"),
+            },
             Err(e) => println!("Error accepting connection: {e}"),
         }
     }
