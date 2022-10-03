@@ -48,7 +48,14 @@ impl From<&str> for U256 {
             };
             U256([high, low])
         } else {
-            todo!("Decimal import");
+            let digits = item.parse::<num_bigint::BigUint>().unwrap().to_u64_digits();
+            assert!(digits.len() <= 4);
+            U256([
+                u128::from(*digits.get(3).unwrap_or(&0)) << 64
+                    | u128::from(*digits.get(2).unwrap_or(&0)),
+                u128::from(*digits.get(1).unwrap_or(&0)) << 64
+                    | u128::from(*digits.get(0).unwrap_or(&0)),
+            ])
         }
     }
 }
@@ -146,6 +153,24 @@ mod test {
         );
         assert_eq!(
             U256::from("0x100000000000000000000000000000000"),
+            U256::from(u128::MAX) + U256::from(1)
+        );
+    }
+
+    #[test]
+    fn from_decimal() {
+        assert_eq!(U256::from("0"), U256::from(0));
+        assert_eq!(U256::from("10"), U256::from(10));
+        assert_eq!(
+            U256::from("680564733841876926926749214863536422910"),
+            U256::from(u128::MAX) + U256::from(u128::MAX)
+        );
+        assert_eq!(
+            U256::from("000680564733841876926926749214863536422910"),
+            U256::from(u128::MAX) + U256::from(u128::MAX)
+        );
+        assert_eq!(
+            U256::from("340282366920938463463374607431768211456"),
             U256::from(u128::MAX) + U256::from(1)
         );
     }
