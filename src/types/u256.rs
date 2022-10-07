@@ -2,6 +2,8 @@ use std::fmt::Display;
 use std::fmt::Formatter;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
+use num_bigint::BigUint;
+
 #[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct U256([u128; 2]);
 
@@ -10,6 +12,10 @@ impl U256 {
         U256([high, low])
     }
     pub const MAX: U256 = U256::new(u128::MAX, u128::MAX);
+    pub fn to_decimal(&self) -> String {
+        let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
+        format!("{}", value)
+    }
 }
 
 impl From<u128> for U256 {
@@ -172,6 +178,23 @@ mod test {
         assert_eq!(
             U256::from("340282366920938463463374607431768211456"),
             U256::from(u128::MAX) + U256::from(1)
+        );
+    }
+
+    #[test]
+    fn to_decimal() {
+        assert_eq!(U256::from("0").to_decimal(), "0");
+        assert_eq!(
+            U256::from("680564733841876926926749214863536422910").to_decimal(),
+            "680564733841876926926749214863536422910"
+        );
+        assert_eq!(
+            U256::from("000680564733841876926926749214863536422910").to_decimal(),
+            "680564733841876926926749214863536422910"
+        );
+        assert_eq!(
+            U256::from("340282366920938463463374607431768211456").to_decimal(),
+            "340282366920938463463374607431768211456"
         );
     }
 }
