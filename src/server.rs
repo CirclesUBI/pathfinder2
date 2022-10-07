@@ -118,7 +118,7 @@ fn compute_transfer(
                         transfers: transfers.into_iter().map(|e| json::object! {
                             from: e.from.to_string(),
                             to: e.to.to_string(),
-                            token: e.token.to_string(),
+                            token_owner: e.token.to_string(),
                             value: e.capacity.to_string()
                         }).collect::<Vec<_>>(),
                     },
