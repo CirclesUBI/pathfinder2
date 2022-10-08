@@ -1,4 +1,4 @@
-use crate::flow;
+use crate::graph;
 use crate::io::read_edges_binary;
 use crate::types::{Address, Edge, U256};
 use json::JsonValue;
@@ -92,7 +92,7 @@ fn compute_transfer(
         vec![None]
     };
     for max_distance in max_distances {
-        let (flow, transfers) = flow::compute_flow(
+        let (flow, transfers) = graph::compute_flow(
             &Address::from(request.params["from"].to_string().as_str()),
             &Address::from(request.params["to"].to_string().as_str()),
             edges,

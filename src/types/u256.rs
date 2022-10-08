@@ -12,7 +12,8 @@ impl U256 {
         U256([high, low])
     }
     pub const MAX: U256 = U256::new(u128::MAX, u128::MAX);
-    pub fn to_decimal(&self) -> String {
+    #[allow(dead_code)]
+    pub fn to_decimal(self) -> String {
         let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
         format!("{}", value)
     }

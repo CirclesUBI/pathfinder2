@@ -1,4 +1,4 @@
-use pathfinder2::flow::compute_flow;
+use pathfinder2::graph::compute_flow;
 use pathfinder2::io::read_edges_binary;
 use pathfinder2::types::{Address, Edge, U256};
 use std::collections::HashMap;

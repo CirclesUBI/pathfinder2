@@ -1,3 +1,3 @@
-pub mod flow;
+pub mod graph;
 pub mod io;
 pub mod types;

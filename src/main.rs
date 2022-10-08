@@ -1,6 +1,6 @@
 use std::env;
 
-mod flow;
+mod graph;
 mod io;
 mod server;
 mod types;
