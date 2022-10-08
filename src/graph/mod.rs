@@ -36,3 +36,4 @@ impl Display for Node {
 }
 
 pub use crate::graph::flow::compute_flow;
+pub use crate::graph::flow::transfers_to_dot;

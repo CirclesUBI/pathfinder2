@@ -3,6 +3,12 @@ use std::fmt::{Debug, Display, Formatter};
 #[derive(Clone, Copy, Default, Hash, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Address([u8; 20]);
 
+impl Address {
+    pub fn short(&self) -> String {
+        format!("{self}")[..8].to_string()
+    }
+}
+
 impl Debug for Address {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "{}", self)

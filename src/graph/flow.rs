@@ -65,6 +65,38 @@ pub fn compute_flow(
     (flow, transfers)
 }
 
+pub fn transfers_to_dot(edges: &Vec<Edge>) -> String {
+    let mut out = String::new();
+    writeln!(out, "digraph transfers {{").expect("");
+
+    for Edge {
+        from,
+        to,
+        token,
+        capacity,
+    } in edges
+    {
+        let t = if token == from {
+            "(trust)".to_string()
+        } else if token == to {
+            String::new()
+        } else {
+            format!(" ({})", token.short())
+        };
+        writeln!(
+            out,
+            "    \"{}\" -> \"{}\" [label=\"{}{}\"];",
+            from.short(),
+            to.short(),
+            capacity.to_decimal_fraction(),
+            t
+        )
+        .expect("");
+    }
+    writeln!(out, "}}").expect("");
+    out
+}
+
 fn augmenting_path(
     source: &Address,
     sink: &Address,

@@ -1,10 +1,11 @@
+use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use num_bigint::BigUint;
 
-#[derive(Clone, Copy, Debug, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Clone, Copy, Default, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct U256([u128; 2]);
 
 impl U256 {
@@ -12,10 +13,26 @@ impl U256 {
         U256([high, low])
     }
     pub const MAX: U256 = U256::new(u128::MAX, u128::MAX);
-    #[allow(dead_code)]
     pub fn to_decimal(self) -> String {
         let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
         format!("{}", value)
+    }
+    pub fn to_decimal_fraction(self) -> String {
+        let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
+        let formatted = format!("{}", value);
+        match formatted.len() {
+            18.. => {
+                format!(
+                    "{}.{}",
+                    &formatted[..formatted.len() - 18],
+                    &formatted[formatted.len() - 18..formatted.len() - 16]
+                )
+            }
+            17 => {
+                format!(".0{}", &formatted[0..1],)
+            }
+            _ => "0+eps".to_string(),
+        }
     }
 }
 
@@ -113,6 +130,12 @@ impl Display for U256 {
         } else {
             write!(f, "{:#x}{:032x}", self.0[0], self.0[1])
         }
+    }
+}
+
+impl Debug for U256 {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        Display::fmt(self, f)
     }
 }
 
