@@ -158,7 +158,7 @@ fn read_payload(socket: &mut TcpStream) -> Result<Vec<u8>, Box<dyn Error>> {
 
         let header = "content-length: ";
         if l.to_lowercase().starts_with(header) {
-            length = (&l[header.len()..]).parse::<usize>()?;
+            length = l[header.len()..].parse::<usize>()?;
         }
     }
     let mut payload = vec![0u8; length];

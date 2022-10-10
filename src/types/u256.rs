@@ -52,7 +52,7 @@ impl From<&str> for U256 {
             let low_hex = &item[low_start..];
             // disallow + and - prefixes
             assert!(
-                low_hex.as_bytes().get(0) != Some(&54) && low_hex.as_bytes().get(0) != Some(&43)
+                low_hex.as_bytes().first() != Some(&54) && low_hex.as_bytes().first() != Some(&43)
             );
             let low = if low_hex.is_empty() {
                 0
@@ -63,7 +63,8 @@ impl From<&str> for U256 {
             let high_hex = &item[high_start..low_start];
             // disallow + and - prefixes
             assert!(
-                high_hex.as_bytes().get(0) != Some(&54) && high_hex.as_bytes().get(0) != Some(&43)
+                high_hex.as_bytes().first() != Some(&54)
+                    && high_hex.as_bytes().first() != Some(&43)
             );
             let high = if high_hex.is_empty() {
                 0
@@ -78,7 +79,7 @@ impl From<&str> for U256 {
                 u128::from(*digits.get(3).unwrap_or(&0)) << 64
                     | u128::from(*digits.get(2).unwrap_or(&0)),
                 u128::from(*digits.get(1).unwrap_or(&0)) << 64
-                    | u128::from(*digits.get(0).unwrap_or(&0)),
+                    | u128::from(*digits.first().unwrap_or(&0)),
             ])
         }
     }
