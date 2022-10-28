@@ -52,7 +52,7 @@ fn main() {
         max_flow,
         max_hops,
     );
-    println!("Max flow: {flow}");
+    println!("Found flow: {flow}");
     println!("{:?}", transfers);
 
     let token_owners = transfers
