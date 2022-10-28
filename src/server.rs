@@ -1,5 +1,5 @@
 use crate::graph;
-use crate::io::read_edges_binary;
+use crate::io::{read_edges_binary, read_edges_csv};
 use crate::types::{Address, Edge, U256};
 use json::JsonValue;
 use std::collections::HashMap;
@@ -70,6 +70,15 @@ fn handle_connection(
             };
             socket.write_all(response.as_bytes())?;
         }
+        "load_edges_csv" => {
+            let response = match load_edges_csv(edges, &request.params["file"].to_string()) {
+                Ok(len) => jsonrpc_response(request.id, len),
+                Err(e) => {
+                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {e}"))
+                }
+            };
+            socket.write_all(response.as_bytes())?;
+        }
         "compute_transfer" => {
             println!("Computing flow");
             let e = edges.read().unwrap().clone();
@@ -86,6 +95,16 @@ fn load_edges_binary(
     file: &String,
 ) -> Result<usize, Box<dyn Error>> {
     let updated_edges = read_edges_binary(file)?;
+    let len = updated_edges.len();
+    *edges.write().unwrap() = Arc::new(updated_edges);
+    Ok(len)
+}
+
+fn load_edges_csv(
+    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
+    file: &String,
+) -> Result<usize, Box<dyn Error>> {
+    let updated_edges = read_edges_csv(file)?;
     let len = updated_edges.len();
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
