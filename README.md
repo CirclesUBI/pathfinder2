@@ -35,7 +35,7 @@ and the maximum amount of circles to transfer.
 
 The options are:
 
-`cargo run --release --bin cli <from> <to> [<max_hops> [<max_amount>]] <edges.dat>] [--dot <dotfile>]`
+`cargo run --release --bin cli <from> <to> <edges.dat> [<max_hops> [<max_amount>]] [--dot <dotfile>]`
 
 For example 
 

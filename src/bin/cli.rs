@@ -23,22 +23,27 @@ fn main() {
 
     if args.len() < 4 {
         println!("Usage: cli <from> <to> <edges.dat> [--dot <dotfile>]");
-        println!("Usage: cli <from> <to> <max_hops> <edges.dat> [--dot <dotfile>]");
-        println!("Usage: cli <from> <to> <max_hops> <max_flow> <edges.dat> [--dot <dotfile>]");
+        println!("Usage: cli <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]");
+        println!("Usage: cli <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]");
         return;
     }
     let mut max_hops = None;
     let mut max_flow = U256::MAX;
     let (from_str, to_str, edges_file) = (&args[1], &args[2], &args[3]);
     if args.len() >= 5 {
-        max_hops = Some(args[4].parse().unwrap());
+        max_hops = Some(
+            args[4]
+                .parse()
+                .unwrap_or_else(|_| panic!("Expected number of hops, but got: {}", args[4])),
+        );
         if args.len() >= 6 {
             max_flow = args[5].as_str().into();
         }
     }
 
     println!("Computing flow {from_str} -> {to_str} using {edges_file}");
-    let edges = io::read_edges_binary(edges_file).expect("Error loading edges.");
+    let edges = io::read_edges_binary(edges_file)
+        .unwrap_or_else(|_| panic!("Error loading edges from file \"{edges_file}\"."));
     println!("Read {} edges", edges.len());
     let (flow, transfers) = graph::compute_flow(
         &Address::from(from_str.as_str()),
