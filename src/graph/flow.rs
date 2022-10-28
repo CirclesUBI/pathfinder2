@@ -46,6 +46,11 @@ pub fn compute_flow(
         }
     }
 
+    used_edges.retain(|_, out| {
+        out.retain(|_, c| *c != U256::from(0));
+        !out.is_empty()
+    });
+
     println!("Max flow: {flow}");
 
     if flow > requested_flow {
