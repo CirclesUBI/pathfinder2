@@ -36,7 +36,10 @@ impl<'a> Adjacencies<'a> {
                 *adjacencies.entry(node.clone()).or_default() += *c;
             }
         }
-        let mut result = adjacencies.into_iter().collect::<Vec<(Node, U256)>>();
+        let mut result = adjacencies
+            .into_iter()
+            .filter(|(_, cap)| *cap != U256::from(0))
+            .collect::<Vec<(Node, U256)>>();
         result.sort_unstable_by_key(|(_, capacity)| Reverse(*capacity));
         result
     }
