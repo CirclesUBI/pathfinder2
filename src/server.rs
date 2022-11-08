@@ -4,15 +4,13 @@ use crate::types::{Address, Edge, U256};
 use json::JsonValue;
 use std::collections::HashMap;
 use std::error::Error;
+use std::io::Read;
 use std::io::{BufRead, BufReader, Write};
+use std::net::{TcpListener, TcpStream};
 use std::ops::Deref;
 use std::sync::mpsc::TrySendError;
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread;
-use std::{
-    io::Read,
-    net::{TcpListener, TcpStream},
-};
 
 struct JsonRpcRequest {
     id: JsonValue,
@@ -83,6 +81,22 @@ fn handle_connection(
             println!("Computing flow");
             let e = edges.read().unwrap().clone();
             compute_transfer(request, e.as_ref(), socket)?;
+        }
+        "update_edges" => {
+            let response = match request.params {
+                JsonValue::Array(updates) => match update_edges(edges, updates) {
+                    Ok(len) => jsonrpc_response(request.id, len),
+                    Err(e) => jsonrpc_error_response(
+                        request.id,
+                        -32000,
+                        &format!("Error updating edges: {e}"),
+                    ),
+                },
+                _ => {
+                    jsonrpc_error_response(request.id, -32602, "Invalid arguments: Expected array.")
+                }
+            };
+            socket.write_all(response.as_bytes())?;
         }
         _ => socket
             .write_all(jsonrpc_error_response(request.id, -32601, "Method not found").as_bytes())?,
@@ -158,6 +172,45 @@ fn compute_transfer(
     }
     socket.write_all(chunked_close().as_bytes())?;
     Ok(())
+}
+
+fn update_edges(
+    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
+    updates: Vec<JsonValue>,
+) -> Result<usize, Box<dyn Error>> {
+    let updates = updates
+        .into_iter()
+        .map(|e| Edge {
+            from: Address::from(e["from"].to_string().as_str()),
+            to: Address::from(e["to"].to_string().as_str()),
+            token: Address::from(e["token_owner"].to_string().as_str()),
+            capacity: U256::from(e["capacity"].to_string().as_str()),
+        })
+        .collect::<Vec<_>>();
+    if updates.is_empty() {
+        return Ok(edges.read().unwrap().len());
+    }
+
+    let mut updating_edges = edges.read().unwrap().as_ref().clone();
+    for update in updates {
+        let out_edges = updating_edges.entry(update.from).or_default();
+        if update.capacity == U256::from(0) {
+            out_edges.retain(|e| {
+                !(e.from == update.from && e.to == update.to && e.token == update.token)
+            });
+        } else {
+            match out_edges
+                .iter_mut()
+                .find(|e| e.from == update.from && e.to == update.to && e.token == update.token)
+            {
+                Some(e) => e.capacity = update.capacity,
+                _ => out_edges.push(update),
+            }
+        }
+    }
+    let len = updating_edges.len();
+    *edges.write().unwrap() = Arc::new(updating_edges);
+    Ok(len)
 }
 
 fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>> {

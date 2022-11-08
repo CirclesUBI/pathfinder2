@@ -23,12 +23,12 @@ impl From<[u8; 20]> for Address {
 
 impl From<&str> for Address {
     fn from(item: &str) -> Self {
-        assert!(item.starts_with("0x"));
-        assert!(item.len() == 2 + 20 * 2);
+        let item = item.strip_prefix("0x").unwrap_or(item);
+        assert!(item.len() == 20 * 2);
         let mut data = [0u8; 20];
-        for i in (2..item.len()).step_by(2) {
-            data[i / 2 - 1] = u8::from_str_radix(&item[i..i + 2], 16).unwrap();
-        }
+        data.iter_mut().enumerate().for_each(|(i, b)| {
+            *b = u8::from_str_radix(&item[2 * i..2 * i + 2], 16).unwrap();
+        });
         Address(data)
     }
 }
