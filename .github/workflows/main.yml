@@ -25,4 +25,4 @@ jobs:
         run: |
           docker login https://ghcr.io -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_PASSWORD
           docker build . --tag ghcr.io/circlesland/pathfinder2:latest --tag ghcr.io/circlesland/pathfinder2:${{fromJson(steps.readPackageJson.outputs.packageJson).version}} --tag pathfinder2 --tag main
-          docker push ghcr.io/circlesland/blockchain-indexer:${{fromJson(steps.readPackageJson.outputs.packageJson).version}}
+          docker push ghcr.io/circlesland/pathfinder2:${{fromJson(steps.readPackageJson.outputs.packageJson).version}}
