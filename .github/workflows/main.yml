@@ -7,13 +7,11 @@ on:
 jobs:
   build-docker-image:
     runs-on: ubuntu-latest
-    outputs:
-      version: ${{ fromJson(steps.readPackageJson.outputs.packageJson).version }}
     steps:
       - uses: actions/checkout@v2
       - id: readPackageJson
         run: |
-          content=`cat ./package.json`
+          content=`cat package.json`
           # the following lines are only required for multi line json
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
@@ -26,5 +24,5 @@ jobs:
           DOCKER_REGISTRY_PASSWORD: ${{secrets.DOCKER_REGISTRY_PASSWORD}}
         run: |
           docker login https://ghcr.io -u $DOCKER_REGISTRY_USER -p $DOCKER_REGISTRY_PASSWORD
-          docker build . --tag ghcr.io/circlesland/pathfinder2:latest --tag ghcr.io/circlesland/pathfinder2:${{fromJson(steps.readPackageJson.outputs.packageJson).version}} --tag api-server --tag main
-          docker push ghcr.io/circlesland/pathfinder2:${{fromJson(steps.readPackageJson.outputs.packageJson).version}}
+          docker build -f . --tag ghcr.io/circlesland/pathfinder2:latest --tag ghcr.io/circlesland/pathfinder2:${{fromJson(steps.readPackageJson.outputs.packageJson).version}} --tag pathfinder2 --tag main
+          docker push ghcr.io/circlesland/blockchain-indexer:${{fromJson(steps.readPackageJson.outputs.packageJson).version}}
