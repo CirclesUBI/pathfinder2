@@ -13,4 +13,4 @@ WORKDIR /app
 COPY --from=build /build/target/release .
 RUN chmod +x ./server
 
-CMD ["./server"]
+ENTRYPOINT ["./server"]
