@@ -11,7 +11,7 @@ jobs:
       - uses: actions/checkout@v2
       - id: readPackageJson
         run: |
-          content=`cat package.json`
+          content=`cat ./package.json`
           # the following lines are only required for multi line json
           content="${content//'%'/'%25'}"
           content="${content//$'\n'/'%0A'}"
