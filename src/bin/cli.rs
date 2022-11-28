@@ -12,19 +12,29 @@ const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[
 const RPC_URL: &str = "https://rpc.gnosischain.com";
 
 fn main() {
-    let (dotfile, args) = if env::args().len() >= 2 && env::args().nth_back(1).unwrap() == "--dot" {
-        (
-            Some(env::args().last().unwrap()),
-            env::args().rev().skip(2).rev().collect::<Vec<_>>(),
-        )
+    let (dotfile, mut args) =
+        if env::args().len() >= 2 && env::args().nth_back(1).unwrap() == "--dot" {
+            (
+                Some(env::args().last().unwrap()),
+                env::args().rev().skip(2).rev().collect::<Vec<_>>(),
+            )
+        } else {
+            (None, env::args().collect::<Vec<_>>())
+        };
+    let csv = if args.get(1) == Some(&"--csv".to_string()) {
+        args = [vec![args[0].clone()], args[2..].to_vec()].concat();
+        true
     } else {
-        (None, env::args().collect::<Vec<_>>())
+        false
     };
 
     if args.len() < 4 {
-        println!("Usage: cli <from> <to> <edges.dat> [--dot <dotfile>]");
-        println!("Usage: cli <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]");
-        println!("Usage: cli <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]");
+        println!("Usage: cli [--csv] <from> <to> <edges.dat> [--dot <dotfile>]");
+        println!("Usage: cli [--csv] <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]");
+        println!(
+            "Usage: cli [--csv] <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]"
+        );
+        println!("Option --csv reads edges.dat in csv format instead of binary.");
         return;
     }
     let mut max_hops = None;
@@ -42,8 +52,12 @@ fn main() {
     }
 
     println!("Computing flow {from_str} -> {to_str} using {edges_file}");
-    let edges = io::read_edges_binary(edges_file)
-        .unwrap_or_else(|_| panic!("Error loading edges from file \"{edges_file}\"."));
+    let edges = (if csv {
+        io::read_edges_csv(edges_file)
+    } else {
+        io::read_edges_binary(edges_file)
+    })
+    .unwrap_or_else(|_| panic!("Error loading edges from file \"{edges_file}\"."));
     println!("Read {} edges", edges.len());
     let (flow, transfers) = graph::compute_flow(
         &Address::from(from_str.as_str()),
@@ -53,30 +67,46 @@ fn main() {
         max_hops,
     );
     println!("Found flow: {flow}");
-    println!("{:?}", transfers);
+    //println!("{:?}", transfers);
 
-    let token_owners = transfers
-        .iter()
-        .map(|e| e.token.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
-    let froms = transfers
-        .iter()
-        .map(|e| e.from.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
-    let tos = transfers
-        .iter()
-        .map(|e| e.to.to_string())
-        .collect::<Vec<String>>()
-        .join(",");
-    let amounts = transfers
-        .iter()
-        .map(|e| e.capacity.to_decimal())
-        .collect::<Vec<String>>()
-        .join(",");
-    println!("To check, run the following command (requires foundry):");
-    println!("cast call '{HUB_ADDRESS}' '{TRANSFER_THROUGH_SIG}' '[{token_owners}]' '[{froms}]' '[{tos}]' '[{amounts}]' --rpc-url {RPC_URL} --from {}", &transfers[0].from.to_string());
+    let result = json::object! {
+        maxFlowValue: flow.to_decimal(),
+        transferSteps: transfers.iter().enumerate().map(|(i, e)| {
+            json::object!{
+                from: e.from.to_string(),
+                to: e.to.to_string(),
+                token: e.token.to_string(),
+                value: e.capacity.to_decimal(),
+                step: i,
+            }
+        }).collect::<Vec<_>>()
+    };
+    println!("{result}");
+
+    // let token_owners = transfers
+    //     .iter()
+    //     .map(|e| e.token.to_string())
+    //     .collect::<Vec<String>>()
+    //     .join(",");
+    // let froms = transfers
+    //     .iter()
+    //     .map(|e| e.from.to_string())
+    //     .collect::<Vec<String>>()
+    //     .join(",");
+    // let tos = transfers
+    //     .iter()
+    //     .map(|e| e.to.to_string())
+    //     .collect::<Vec<String>>()
+    //     .join(",");
+    // let amounts = transfers
+    //     .iter()
+    //     .map(|e| e.capacity.to_decimal())
+    //     .collect::<Vec<String>>()
+    //     .join(",");
+
+    //println!("To check, run the following command (requires foundry):");
+    //println!("cast call '{HUB_ADDRESS}' '{TRANSFER_THROUGH_SIG}' '[{token_owners}]' '[{froms}]' '[{tos}]' '[{amounts}]' --rpc-url {RPC_URL} --from {}", &transfers[0].from.to_string());
+
     if let Some(dotfile) = dotfile {
         File::create(&dotfile)
             .unwrap()
