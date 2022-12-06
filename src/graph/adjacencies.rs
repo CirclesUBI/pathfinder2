@@ -1,10 +1,11 @@
 use crate::graph::Node;
+use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use std::cmp::Reverse;
 use std::collections::HashMap;
 
 pub struct Adjacencies<'a> {
-    edges: &'a HashMap<Address, Vec<Edge>>,
+    edges: &'a EdgeDB,
     lazy_adjacencies: HashMap<Node, HashMap<Node, U256>>,
     capacity_adjustments: HashMap<Node, HashMap<Node, U256>>,
 }
@@ -21,7 +22,7 @@ fn source_address_of(node: &Node) -> &Address {
 }
 
 impl<'a> Adjacencies<'a> {
-    pub fn new(edges: &'a HashMap<Address, Vec<Edge>>) -> Self {
+    pub fn new(edges: &'a EdgeDB) -> Self {
         Adjacencies {
             edges,
             lazy_adjacencies: HashMap::new(),
@@ -69,7 +70,7 @@ impl<'a> Adjacencies<'a> {
             .or_insert_with(|| {
                 let mut result: HashMap<Node, U256> = HashMap::new();
                 // Plain edges are (from, to, token) labeled with capacity
-                for edge in self.edges.get(source_address_of(from)).unwrap_or(&vec![]) {
+                for edge in self.edges.outgoing(source_address_of(from)) {
                     match from {
                         Node::Node(_) => {
                             // One edge from "from" to "from x token" with a capacity

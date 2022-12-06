@@ -1,5 +1,6 @@
 use crate::graph::adjacencies::Adjacencies;
 use crate::graph::{node_as_address, node_as_token_edge, Node};
+use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use std::cmp::min;
 use std::collections::VecDeque;
@@ -9,7 +10,7 @@ use std::fmt::Write;
 pub fn compute_flow(
     source: &Address,
     sink: &Address,
-    edges: &HashMap<Address, Vec<Edge>>,
+    edges: &EdgeDB,
     requested_flow: U256,
     max_distance: Option<u64>,
 ) -> (U256, Vec<Edge>) {
@@ -478,12 +479,8 @@ mod test {
             Address::from("0x66c16ce62d26fd51582a646e2e30a3267b1e6d7e"),
         )
     }
-    fn build_edges(input: Vec<Edge>) -> HashMap<Address, Vec<Edge>> {
-        let mut output: HashMap<Address, Vec<Edge>> = HashMap::new();
-        for e in input {
-            output.entry(e.from).or_default().push(e);
-        }
-        output
+    fn build_edges(input: Vec<Edge>) -> EdgeDB {
+        EdgeDB::new(input)
     }
 
     #[test]
@@ -496,7 +493,18 @@ mod test {
             capacity: U256::from(10),
         }]);
         let flow = compute_flow(&a, &b, &edges, U256::MAX, None);
-        assert_eq!(flow, (U256::from(10), edges[&a].clone()));
+        assert_eq!(
+            flow,
+            (
+                U256::from(10),
+                vec![Edge {
+                    from: a,
+                    to: b,
+                    token: t,
+                    capacity: U256::from(10)
+                }]
+            )
+        );
     }
 
     #[test]

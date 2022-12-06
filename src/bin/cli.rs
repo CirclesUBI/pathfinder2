@@ -58,7 +58,7 @@ fn main() {
         io::read_edges_binary(edges_file)
     })
     .unwrap_or_else(|_| panic!("Error loading edges from file \"{edges_file}\"."));
-    println!("Read {} edges", edges.len());
+    println!("Read {} edges", edges.edge_count());
     let (flow, transfers) = graph::compute_flow(
         &Address::from(from_str.as_str()),
         &Address::from(to_str.as_str()),

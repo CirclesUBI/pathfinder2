@@ -1,5 +1,6 @@
 use pathfinder2::graph::compute_flow;
 use pathfinder2::io::read_edges_binary;
+use pathfinder2::types::edge::EdgeDB;
 use pathfinder2::types::{Address, Edge, U256};
 use std::collections::HashMap;
 use std::process::Command;
@@ -51,14 +52,14 @@ fn test_flow_large() {
     );
 }
 
-fn read_edges() -> HashMap<Address, Vec<Edge>> {
+fn read_edges() -> EdgeDB {
     read_edges_binary(&"edges.dat".to_string()).unwrap()
 }
 
 fn test_flow(
     source: &Address,
     sink: &Address,
-    edges: &HashMap<Address, Vec<Edge>>,
+    edges: &EdgeDB,
     requested_flow: U256,
     max_distance: Option<u64>,
 ) {
