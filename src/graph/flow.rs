@@ -1,5 +1,5 @@
 use crate::graph::adjacencies::Adjacencies;
-use crate::graph::{node_as_address, node_as_token_edge, Node};
+use crate::graph::{as_trust_node, Node};
 use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use std::cmp::min;
@@ -117,7 +117,8 @@ fn augmenting_path(
     queue.push_back((Node::Node(*source), (0, U256::default() - U256::from(1))));
     while let Some((node, (depth, flow))) = queue.pop_front() {
         if let Some(max) = max_distance {
-            if depth >= max {
+            // * 3 because we have three edges per trust connection (two intermediate nodes).
+            if depth >= max * 3 {
                 continue;
             }
         }
@@ -416,12 +417,12 @@ fn extract_transfers(
             .and_modify(|balance| *balance -= edge.capacity);
         *account_balances.entry(edge.to).or_default() += edge.capacity;
         account_balances.retain(|_account, balance| balance > &mut U256::from(0));
-        assert!(used_edges.contains_key(&Node::TokenEdge(edge.from, edge.token)));
+        assert!(used_edges.contains_key(&Node::BalanceNode(edge.from, edge.token)));
         used_edges
-            .entry(Node::TokenEdge(edge.from, edge.token))
+            .entry(Node::BalanceNode(edge.from, edge.token))
             .and_modify(|outgoing| {
-                assert!(outgoing.contains_key(&Node::Node(edge.to)));
-                outgoing.remove(&Node::Node(edge.to));
+                assert!(outgoing.contains_key(&Node::TrustNode(edge.to, edge.token)));
+                outgoing.remove(&Node::TrustNode(edge.to, edge.token));
             });
         transfers.push(edge);
     }
@@ -439,12 +440,12 @@ fn next_full_capacity_edge(
             .unwrap_or(&HashMap::new())
             .keys()
         {
-            for (to_node, capacity) in &used_edges[intermediate] {
-                let (from, token) = node_as_token_edge(intermediate);
+            for (trust_node, capacity) in &used_edges[intermediate] {
+                let (to, token) = as_trust_node(trust_node);
                 if *balance >= *capacity {
                     return Edge {
-                        from: *from,
-                        to: *node_as_address(to_node),
+                        from: *account,
+                        to: *to,
                         token: *token,
                         capacity: *capacity,
                     };
@@ -622,5 +623,45 @@ mod test {
                 ]
             )
         );
+    }
+
+    #[test]
+    fn trust_transfer_limit() {
+        let (a, b, c, d, t1, t2) = addresses();
+        let edges = build_edges(vec![
+            // The following two edges should be balance-limited,
+            // i.e. a -> first intermediate is limited by the max of the two.
+            Edge {
+                from: a,
+                to: b,
+                token: a,
+                capacity: U256::from(10),
+            },
+            Edge {
+                from: a,
+                to: c,
+                token: a,
+                capacity: U256::from(11),
+            },
+            // The following two edges should be trust-limited,
+            // i.e. the edge from the second (pre-) intermediate is limited
+            // by the max of the two.
+            Edge {
+                from: b,
+                to: d,
+                token: a,
+                capacity: U256::from(9),
+            },
+            Edge {
+                from: c,
+                to: d,
+                token: a,
+                capacity: U256::from(8),
+            },
+        ]);
+        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None);
+        flow.1.sort();
+        println!("{:?}", &flow.1);
+        assert_eq!(flow.0, U256::from(9));
     }
 }

@@ -62,6 +62,17 @@ impl EdgeDB {
         }
     }
 
+    pub fn incoming(&self, to: &Address) -> Vec<&Edge> {
+        match self.incoming.get(to) {
+            Some(incoming) => incoming
+                .iter()
+                .map(|i| self.edges.get(*i).unwrap())
+                .filter(|e| e.capacity != U256::from(0))
+                .collect(),
+            None => vec![],
+        }
+    }
+
     fn index_of(&self, e: &Edge) -> Option<usize> {
         self.outgoing.get(&e.from).and_then(|out| {
             for i in out {
