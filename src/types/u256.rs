@@ -15,11 +15,11 @@ impl U256 {
     pub const MAX: U256 = U256::new(u128::MAX, u128::MAX);
     pub fn to_decimal(self) -> String {
         let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
-        format!("{}", value)
+        format!("{value}")
     }
     pub fn to_decimal_fraction(self) -> String {
         let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
-        let formatted = format!("{}", value);
+        let formatted = format!("{value}");
         match formatted.len() {
             18.. => {
                 format!(

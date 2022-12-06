@@ -160,21 +160,11 @@ fn to_dot(
     writeln!(out, "digraph used_edges {{").expect("");
 
     for (address, balance) in account_balances {
-        writeln!(
-            out,
-            "    \"{}\" [label=\"{}: {}\"];",
-            address, address, balance
-        )
-        .expect("");
+        writeln!(out, "    \"{address}\" [label=\"{address}: {balance}\"];",).expect("");
     }
     for (from, out_edges) in edges {
         for (to, capacity) in out_edges {
-            writeln!(
-                out,
-                "    \"{}\" -> \"{}\" [label=\"{}\"];",
-                from, to, capacity
-            )
-            .expect("");
+            writeln!(out, "    \"{from}\" -> \"{to}\" [label=\"{capacity}\"];",).expect("");
         }
     }
     writeln!(out, "}}").expect("");

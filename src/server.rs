@@ -139,10 +139,7 @@ fn compute_transfer(
             },
             max_distance,
         );
-        println!(
-            "Computed flow with max distance {:?}: {}",
-            max_distance, flow
-        );
+        println!("Computed flow with max distance {max_distance:?}: {flow}");
         socket.write_all(
             chunked_response(
                 &(jsonrpc_result(
