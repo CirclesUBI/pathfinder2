@@ -1,8 +1,8 @@
 use crate::graph;
 use crate::io::{read_edges_binary, read_edges_csv};
+use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use json::JsonValue;
-use std::collections::HashMap;
 use std::error::Error;
 use std::io::Read;
 use std::io::{BufRead, BufReader, Write};
@@ -18,10 +18,8 @@ struct JsonRpcRequest {
     params: JsonValue,
 }
 
-type EdgeMap = HashMap<Address, Vec<Edge>>;
-
 pub fn start_server(port: u16, queue_size: usize, threads: u64) {
-    let edges: Arc<RwLock<Arc<EdgeMap>>> = Arc::new(RwLock::new(Arc::new(HashMap::new())));
+    let edges: Arc<RwLock<Arc<EdgeDB>>> = Arc::new(RwLock::new(Arc::new(EdgeDB::default())));
 
     let (sender, receiver) = mpsc::sync_channel(queue_size);
     let protected_receiver = Arc::new(Mutex::new(receiver));
@@ -54,7 +52,7 @@ pub fn start_server(port: u16, queue_size: usize, threads: u64) {
 }
 
 fn handle_connection(
-    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
+    edges: &RwLock<Arc<EdgeDB>>,
     mut socket: TcpStream,
 ) -> Result<(), Box<dyn Error>> {
     let request = read_request(&mut socket)?;
@@ -104,29 +102,23 @@ fn handle_connection(
     Ok(())
 }
 
-fn load_edges_binary(
-    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
-    file: &String,
-) -> Result<usize, Box<dyn Error>> {
+fn load_edges_binary(edges: &RwLock<Arc<EdgeDB>>, file: &String) -> Result<usize, Box<dyn Error>> {
     let updated_edges = read_edges_binary(file)?;
-    let len = updated_edges.len();
+    let len = updated_edges.edge_count();
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
 }
 
-fn load_edges_csv(
-    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
-    file: &String,
-) -> Result<usize, Box<dyn Error>> {
+fn load_edges_csv(edges: &RwLock<Arc<EdgeDB>>, file: &String) -> Result<usize, Box<dyn Error>> {
     let updated_edges = read_edges_csv(file)?;
-    let len = updated_edges.len();
+    let len = updated_edges.edge_count();
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
 }
 
 fn compute_transfer(
     request: JsonRpcRequest,
-    edges: &HashMap<Address, Vec<Edge>>,
+    edges: &EdgeDB,
     mut socket: TcpStream,
 ) -> Result<(), Box<dyn Error>> {
     socket.write_all(chunked_header().as_bytes())?;
@@ -147,10 +139,7 @@ fn compute_transfer(
             },
             max_distance,
         );
-        println!(
-            "Computed flow with max distance {:?}: {}",
-            max_distance, flow
-        );
+        println!("Computed flow with max distance {max_distance:?}: {flow}");
         socket.write_all(
             chunked_response(
                 &(jsonrpc_result(
@@ -175,7 +164,7 @@ fn compute_transfer(
 }
 
 fn update_edges(
-    edges: &RwLock<Arc<HashMap<Address, Vec<Edge>>>>,
+    edges: &RwLock<Arc<EdgeDB>>,
     updates: Vec<JsonValue>,
 ) -> Result<usize, Box<dyn Error>> {
     let updates = updates
@@ -188,27 +177,14 @@ fn update_edges(
         })
         .collect::<Vec<_>>();
     if updates.is_empty() {
-        return Ok(edges.read().unwrap().len());
+        return Ok(edges.read().unwrap().edge_count());
     }
 
     let mut updating_edges = edges.read().unwrap().as_ref().clone();
     for update in updates {
-        let out_edges = updating_edges.entry(update.from).or_default();
-        if update.capacity == U256::from(0) {
-            out_edges.retain(|e| {
-                !(e.from == update.from && e.to == update.to && e.token == update.token)
-            });
-        } else {
-            match out_edges
-                .iter_mut()
-                .find(|e| e.from == update.from && e.to == update.to && e.token == update.token)
-            {
-                Some(e) => e.capacity = update.capacity,
-                _ => out_edges.push(update),
-            }
-        }
+        updating_edges.update(update);
     }
-    let len = updating_edges.len();
+    let len = updating_edges.edge_count();
     *edges.write().unwrap() = Arc::new(updating_edges);
     Ok(len)
 }

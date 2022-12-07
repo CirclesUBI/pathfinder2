@@ -11,7 +11,7 @@ impl Address {
 
 impl Debug for Address {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
-        write!(f, "{}", self)
+        write!(f, "{self}")
     }
 }
 
@@ -37,7 +37,7 @@ impl Display for Address {
     fn fmt(&self, f: &mut Formatter) -> std::fmt::Result {
         write!(f, "0x")?;
         for b in self.0 {
-            write!(f, "{:02x}", b)?;
+            write!(f, "{b:02x}")?;
         }
         Ok(())
     }

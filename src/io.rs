@@ -3,16 +3,17 @@ use std::io::Read;
 use std::io::{self, BufRead};
 use std::{collections::HashMap, io::BufReader};
 
+use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 
-pub fn read_edges_binary(path: &String) -> Result<HashMap<Address, Vec<Edge>>, io::Error> {
+pub fn read_edges_binary(path: &String) -> Result<EdgeDB, io::Error> {
     let mut f = File::open(path)?;
     let address_index = read_address_index(&mut f)?;
     read_edges(&mut f, &address_index)
 }
 
-pub fn read_edges_csv(path: &String) -> Result<HashMap<Address, Vec<Edge>>, io::Error> {
-    let mut result = HashMap::<Address, Vec<Edge>>::new();
+pub fn read_edges_csv(path: &String) -> Result<EdgeDB, io::Error> {
+    let mut edges = Vec::new();
     let f = BufReader::new(File::open(path)?);
     for line in f.lines() {
         let line = line?;
@@ -23,7 +24,7 @@ pub fn read_edges_csv(path: &String) -> Result<HashMap<Address, Vec<Edge>>, io::
                 let to = Address::from(unescape(to));
                 let token = Address::from(unescape(token));
                 let capacity = U256::from(unescape(capacity));
-                result.entry(from).or_default().push(Edge {
+                edges.push(Edge {
                     from,
                     to,
                     token,
@@ -38,7 +39,7 @@ pub fn read_edges_csv(path: &String) -> Result<HashMap<Address, Vec<Edge>>, io::
             }
         }
     }
-    Ok(result)
+    Ok(EdgeDB::new(edges))
 }
 
 fn read_address_index(file: &mut File) -> Result<HashMap<u32, Address>, io::Error> {
@@ -81,25 +82,22 @@ fn read_u256(file: &mut File) -> Result<U256, io::Error> {
     Ok(U256::new(high, low))
 }
 
-fn read_edges(
-    file: &mut File,
-    address_index: &HashMap<u32, Address>,
-) -> Result<HashMap<Address, Vec<Edge>>, io::Error> {
+fn read_edges(file: &mut File, address_index: &HashMap<u32, Address>) -> Result<EdgeDB, io::Error> {
     let edge_count = read_u32(file)?;
-    let mut edges: HashMap<Address, Vec<Edge>> = HashMap::new();
+    let mut edges = Vec::new();
     for _i in 0..edge_count {
         let from = read_address(file, address_index)?;
         let to = read_address(file, address_index)?;
         let token = read_address(file, address_index)?;
         let capacity = read_u256(file)?;
-        edges.entry(from).or_insert(vec![]).push(Edge {
+        edges.push(Edge {
             from,
             to,
             token,
             capacity,
         });
     }
-    Ok(edges)
+    Ok(EdgeDB::new(edges))
 }
 
 fn unescape(input: &str) -> &str {
