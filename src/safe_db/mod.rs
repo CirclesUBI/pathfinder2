@@ -1,2 +1,2 @@
-mod db;
-mod safes_json;
+pub mod db;
+pub mod safes_json;

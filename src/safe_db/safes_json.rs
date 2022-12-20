@@ -57,6 +57,7 @@ pub fn import_from_safes_json(file: &str) -> DB {
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 struct Safes<'a> {
+    #[allow(dead_code)]
     block_number: &'a str,
     safes: Vec<JsonSafe<'a>>,
 }
@@ -76,6 +77,7 @@ struct JsonSafe<'a> {
 #[serde(deny_unknown_fields)]
 #[serde(rename_all = "camelCase")]
 struct Edge<'a> {
+    #[allow(dead_code)]
     limit: Option<&'a str>,
     limit_percentage: &'a str,
     can_send_to_address: &'a str,
@@ -103,13 +105,4 @@ struct Token<'a> {
 #[serde(rename_all = "camelCase")]
 struct Owner<'a> {
     id: &'a str,
-}
-
-mod test {
-    use super::*;
-
-    #[test]
-    pub fn t1() {
-        import_from_safes_json("/tmp/safes.json");
-    }
 }

@@ -29,6 +29,7 @@ impl U256 {
         let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
         format!("{value}")
     }
+
     pub fn to_decimal_fraction(self) -> String {
         let value: BigUint = self.into();
         let formatted = format!("{value}");
@@ -45,6 +46,19 @@ impl U256 {
             }
             _ => "0+eps".to_string(),
         }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+        for i in 0..=1 {
+            for j in (0..16).rev() {
+                let b = ((self.0[i] >> (j * 8)) & 0xff) as u8;
+                if b != 0 || !result.is_empty() {
+                    result.push(b);
+                }
+            }
+        }
+        result
     }
 }
 
@@ -277,6 +291,26 @@ mod test {
         assert_eq!(
             (large / two) * large,
             U256::from("0x8000000000000000000000000000000000000000000000000000000000000000")
+        );
+    }
+
+    #[test]
+    fn to_bytes() {
+        let zero = U256::from("0");
+        assert_eq!(zero.to_bytes(), Vec::<u8>::new());
+        assert_eq!(U256::from("2").to_bytes(), vec![2]);
+        assert_eq!(
+            U256::from("0x100000000000000000000000000000000").to_bytes(),
+            vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        );
+        assert_eq!(
+            U256::from("0xff00000000000000000000000000000001").to_bytes(),
+            vec![255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        );
+        assert_eq!(
+            U256::from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+                .to_bytes(),
+            vec![255; 32]
         );
     }
 }

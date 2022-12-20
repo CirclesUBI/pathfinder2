@@ -7,8 +7,11 @@ use pathfinder2::io;
 use pathfinder2::types::Address;
 use pathfinder2::types::U256;
 
+#[allow(dead_code)]
 const HUB_ADDRESS: &str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
+#[allow(dead_code)]
 const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[],uint256[])";
+#[allow(dead_code)]
 const RPC_URL: &str = "https://rpc.gnosischain.com";
 
 fn main() {

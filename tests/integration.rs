@@ -1,14 +1,12 @@
 use pathfinder2::graph::compute_flow;
 use pathfinder2::io::read_edges_binary;
 use pathfinder2::types::edge::EdgeDB;
-use pathfinder2::types::{Address, Edge, U256};
-use std::collections::HashMap;
+use pathfinder2::types::{Address, U256};
 use std::process::Command;
 
-const HUB_ADDRESS: &'static str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
-const TRANSFER_THROUGH_SIG: &'static str =
-    "transferThrough(address[],address[],address[],uint256[])";
-const RPC_URL: &'static str = "https://rpc.gnosischain.com";
+const HUB_ADDRESS: &str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
+const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[],uint256[])";
+const RPC_URL: &str = "https://rpc.gnosischain.com";
 
 #[test]
 fn test_flow_chris_martin() {
@@ -64,7 +62,7 @@ fn test_flow(
     max_distance: Option<u64>,
 ) {
     let transfers = compute_flow(source, sink, edges, requested_flow, max_distance);
-    println!("{:?}", transfers);
+    println!("{transfers:?}");
 
     let token_owners = transfers
         .1

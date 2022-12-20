@@ -1,4 +1,4 @@
-use std::{collections::BTreeMap, default};
+use std::collections::BTreeMap;
 
 use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
@@ -19,6 +19,10 @@ impl DB {
         };
         db.compute_edges();
         db
+    }
+
+    pub fn edges(&self) -> &EdgeDB {
+        &self.edges
     }
 
     fn compute_edges(&mut self) {
@@ -44,7 +48,7 @@ impl DB {
             // send tokens back to owner
             for (token, balance) in &safe.balances {
                 if let Some(owner) = self.token_owner.get(token) {
-                    if *user != *owner {
+                    if *user != *owner && *balance != U256::from(0) {
                         edges.push(Edge {
                             from: *user,
                             to: *owner,

@@ -627,7 +627,7 @@ mod test {
 
     #[test]
     fn trust_transfer_limit() {
-        let (a, b, c, d, t1, t2) = addresses();
+        let (a, b, c, d, ..) = addresses();
         let edges = build_edges(vec![
             // The following two edges should be balance-limited,
             // i.e. a -> first intermediate is limited by the max of the two.

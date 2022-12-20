@@ -39,6 +39,10 @@ impl EdgeDB {
         self.edges.len()
     }
 
+    pub fn edges(&self) -> &Vec<Edge> {
+        &self.edges
+    }
+
     pub fn update(&mut self, update: Edge) {
         match self.index_of(&update) {
             Some(i) => self.edges[i].capacity = update.capacity,

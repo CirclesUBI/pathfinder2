@@ -1,6 +1,7 @@
+use std::collections::BTreeSet;
 use std::fs::File;
-use std::io::Read;
 use std::io::{self, BufRead};
+use std::io::{Read, Write};
 use std::{collections::HashMap, io::BufReader};
 
 use crate::types::edge::EdgeDB;
@@ -42,6 +43,28 @@ pub fn read_edges_csv(path: &String) -> Result<EdgeDB, io::Error> {
     Ok(EdgeDB::new(edges))
 }
 
+pub fn write_edges_binary(edges: &EdgeDB, path: &String) -> Result<(), io::Error> {
+    let mut file = File::create(path)?;
+    let address_index = write_address_index(&mut file, edges)?;
+    write_edges(&mut file, edges, &address_index)
+}
+
+pub fn write_edges_csv(edges: &EdgeDB, path: &String) -> Result<(), io::Error> {
+    let mut file = File::create(path)?;
+    let mut sorted_edges = edges.edges().clone();
+    sorted_edges.sort();
+    for Edge {
+        from,
+        to,
+        token,
+        capacity,
+    } in sorted_edges
+    {
+        writeln!(file, "{from},{to},{token},{capacity}")?;
+    }
+    Ok(())
+}
+
 fn read_address_index(file: &mut File) -> Result<HashMap<u32, Address>, io::Error> {
     let address_count = read_u32(file)?;
     let mut addresses = HashMap::new();
@@ -53,16 +76,48 @@ fn read_address_index(file: &mut File) -> Result<HashMap<u32, Address>, io::Erro
     Ok(addresses)
 }
 
+fn write_address_index(
+    file: &mut File,
+    edges: &EdgeDB,
+) -> Result<HashMap<Address, u32>, io::Error> {
+    let mut addresses = BTreeSet::new();
+    for Edge {
+        from, to, token, ..
+    } in edges.edges()
+    {
+        addresses.insert(*from);
+        addresses.insert(*to);
+        addresses.insert(*token);
+    }
+    write_u32(file, addresses.len() as u32)?;
+    let mut index = HashMap::new();
+    for (i, addr) in addresses.into_iter().enumerate() {
+        file.write_all(&addr.to_bytes())?;
+        index.insert(addr, i as u32);
+    }
+    Ok(index)
+}
+
 fn read_u32(file: &mut File) -> Result<u32, io::Error> {
     let mut buf = [0; 4];
     file.read_exact(&mut buf)?;
     Ok(u32::from_be_bytes(buf))
 }
 
+fn write_u32(file: &mut File, v: u32) -> Result<(), io::Error> {
+    let buf = v.to_be_bytes();
+    file.write_all(&buf)
+}
+
 fn read_u8(file: &mut File) -> Result<u8, io::Error> {
     let mut buf = [0; 1];
     file.read_exact(&mut buf)?;
     Ok(u8::from_be_bytes(buf))
+}
+
+fn write_u8(file: &mut File, v: u8) -> Result<(), io::Error> {
+    let buf = v.to_be_bytes();
+    file.write_all(&buf)
 }
 
 fn read_address(
@@ -73,6 +128,14 @@ fn read_address(
     Ok(address_index[&index])
 }
 
+fn write_address(
+    file: &mut File,
+    address: &Address,
+    address_index: &HashMap<Address, u32>,
+) -> Result<(), io::Error> {
+    write_u32(file, *address_index.get(address).unwrap())
+}
+
 fn read_u256(file: &mut File) -> Result<U256, io::Error> {
     let length = read_u8(file)? as usize;
     let mut bytes = [0u8; 32];
@@ -80,6 +143,16 @@ fn read_u256(file: &mut File) -> Result<U256, io::Error> {
     let high = u128::from_be_bytes(*<&[u8; 16]>::try_from(&bytes[0..16]).unwrap());
     let low = u128::from_be_bytes(*<&[u8; 16]>::try_from(&bytes[16..32]).unwrap());
     Ok(U256::new(high, low))
+}
+
+fn write_u256(file: &mut File, v: &U256) -> Result<(), io::Error> {
+    let v_bytes = v.to_bytes();
+    if v_bytes.is_empty() {
+        file.write_all(&[1, 0])
+    } else {
+        write_u8(file, v_bytes.len() as u8)?;
+        file.write_all(&v_bytes)
+    }
 }
 
 fn read_edges(file: &mut File, address_index: &HashMap<u32, Address>) -> Result<EdgeDB, io::Error> {
@@ -98,6 +171,29 @@ fn read_edges(file: &mut File, address_index: &HashMap<u32, Address>) -> Result<
         });
     }
     Ok(EdgeDB::new(edges))
+}
+
+fn write_edges(
+    file: &mut File,
+    edges: &EdgeDB,
+    address_index: &HashMap<Address, u32>,
+) -> Result<(), io::Error> {
+    write_u32(file, edges.edge_count() as u32)?;
+    let mut sorted_edges = edges.edges().clone();
+    sorted_edges.sort();
+    for Edge {
+        from,
+        to,
+        token,
+        capacity,
+    } in &sorted_edges
+    {
+        write_address(file, from, address_index)?;
+        write_address(file, to, address_index)?;
+        write_address(file, token, address_index)?;
+        write_u256(file, capacity)?;
+    }
+    Ok(())
 }
 
 fn unescape(input: &str) -> &str {
