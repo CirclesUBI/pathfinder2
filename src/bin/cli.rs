@@ -84,7 +84,7 @@ fn main() {
         max_flow,
         max_hops,
     );
-    println!("Found flow: {flow}");
+    println!("Found flow: {}", flow.to_decimal());
     //println!("{:?}", transfers);
 
     let result = json::object! {

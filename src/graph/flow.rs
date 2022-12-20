@@ -52,7 +52,7 @@ pub fn compute_flow(
         !out.is_empty()
     });
 
-    println!("Max flow: {flow}");
+    println!("Max flow: {}", flow.to_decimal());
 
     if flow > requested_flow {
         let still_to_prune = prune_flow(source, sink, flow - requested_flow, &mut used_edges);
