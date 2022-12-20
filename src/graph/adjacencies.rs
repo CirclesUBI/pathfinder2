@@ -2,12 +2,12 @@ use crate::graph::Node;
 use crate::types::edge::EdgeDB;
 use crate::types::{Edge, U256};
 use std::cmp::{max, Reverse};
-use std::collections::HashMap;
+use std::collections::BTreeMap;
 
 pub struct Adjacencies<'a> {
     edges: &'a EdgeDB,
-    lazy_adjacencies: HashMap<Node, HashMap<Node, U256>>,
-    capacity_adjustments: HashMap<Node, HashMap<Node, U256>>,
+    lazy_adjacencies: BTreeMap<Node, BTreeMap<Node, U256>>,
+    capacity_adjustments: BTreeMap<Node, BTreeMap<Node, U256>>,
 }
 
 // fn pseudo_node(edge: Edge) -> Node {
@@ -33,8 +33,8 @@ impl<'a> Adjacencies<'a> {
     pub fn new(edges: &'a EdgeDB) -> Self {
         Adjacencies {
             edges,
-            lazy_adjacencies: HashMap::new(),
-            capacity_adjustments: HashMap::new(),
+            lazy_adjacencies: BTreeMap::new(),
+            capacity_adjustments: BTreeMap::new(),
         }
     }
 
@@ -72,11 +72,11 @@ impl<'a> Adjacencies<'a> {
         }
     }
 
-    fn adjacencies_from(&mut self, from: &Node) -> HashMap<Node, U256> {
+    fn adjacencies_from(&mut self, from: &Node) -> BTreeMap<Node, U256> {
         self.lazy_adjacencies
             .entry(from.clone())
             .or_insert_with(|| {
-                let mut result: HashMap<Node, U256> = HashMap::new();
+                let mut result: BTreeMap<Node, U256> = BTreeMap::new();
                 // Plain edges are (from, to, token) labeled with capacity
                 match from {
                     Node::Node(from) => {
