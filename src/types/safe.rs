@@ -4,6 +4,8 @@ use super::{Address, U256};
 
 #[derive(Default, Debug)]
 pub struct Safe {
+    /// The address of the token, or the address of the safe if
+    /// the database does not use the distinction.
     pub token_address: Address,
     pub balances: BTreeMap<Address, U256>,
     /// Limit percentage in "send to" direction
