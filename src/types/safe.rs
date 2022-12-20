@@ -21,6 +21,7 @@ impl Safe {
     pub fn trust_transfer_limit(&self, receiver: &Safe, trust_percentage: u8) -> U256 {
         if receiver.organization {
             // TODO treat this as "return to owner"
+            // i.e. limited / only constrained by the balance edge.
             self.balance(&self.token_address)
         } else {
             let receiver_balance = receiver.balance(&self.token_address);
@@ -30,6 +31,8 @@ impl Safe {
             if amount < receiver_balance {
                 U256::from(0)
             } else {
+                // TODO it should not be "min" - the second constraint
+                // is set by the balance edge.
                 min(amount - receiver_balance, self.balance(&self.token_address))
             }
         }
