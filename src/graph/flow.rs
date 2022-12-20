@@ -64,11 +64,10 @@ pub fn compute_flow(
     } else {
         extract_transfers(source, sink, &flow, used_edges)
     };
-    // TODO We can simplify the transfers:
-    // If we have a transfer (A, B, T) and a transfer (B, C, T),
-    // We can always replace both by (A, C, T).
     println!("Num transfers: {}", transfers.len());
-    (flow, transfers)
+    let simplified_transfers = simplify_transfers(transfers);
+    println!("After simplification: {}", simplified_transfers.len());
+    (flow, simplified_transfers)
 }
 
 pub fn transfers_to_dot(edges: &Vec<Edge>) -> String {
@@ -454,6 +453,37 @@ fn next_full_capacity_edge(
         }
     }
     panic!();
+}
+
+fn simplify_transfers(mut transfers: Vec<Edge>) -> Vec<Edge> {
+    // We can simplify the transfers:
+    // If we have a transfer (A, B, T) and a transfer (B, C, T),
+    // We can always replace both by (A, C, T).
+
+    let mut simplifications = Vec::new();
+    for (i, a) in transfers.iter().enumerate() {
+        for (j, b) in transfers[i + 1..].iter().enumerate() {
+            // We do not need matching capacity, but only then will we save
+            // a transfer.
+            if a.to == b.from && a.token == b.token && a.capacity == b.capacity {
+                simplifications.push((i, i + j + 1));
+            }
+        }
+    }
+    for (i, j) in simplifications.iter().rev() {
+        transfers[*i].to = transfers[*j].to;
+    }
+    transfers
+        .into_iter()
+        .enumerate()
+        .flat_map(|(i, e)| {
+            if simplifications.iter().any(|(_, j)| i == *j) {
+                None
+            } else {
+                Some(e)
+            }
+        })
+        .collect::<Vec<_>>()
 }
 
 #[cfg(test)]
