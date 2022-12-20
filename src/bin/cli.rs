@@ -30,14 +30,27 @@ fn main() {
     } else {
         false
     };
+    let safes = if args.get(1) == Some(&"--safes".to_string()) {
+        args = [vec![args[0].clone()], args[2..].to_vec()].concat();
+        true
+    } else {
+        false
+    };
+    if safes && csv {
+        println!("Options --safes and --csv cannot be used together.");
+        return;
+    }
 
     if args.len() < 4 {
-        println!("Usage: cli [--csv] <from> <to> <edges.dat> [--dot <dotfile>]");
-        println!("Usage: cli [--csv] <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]");
+        println!("Usage: cli [--csv] [--safes] <from> <to> <edges.dat> [--dot <dotfile>]");
         println!(
-            "Usage: cli [--csv] <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]"
+            "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]"
+        );
+        println!(
+            "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]"
         );
         println!("Option --csv reads edges.dat in csv format instead of binary.");
+        println!("Option --safes reads a safes.dat file instead of an edges.dat file.");
         return;
     }
     let mut max_hops = None;
@@ -57,10 +70,12 @@ fn main() {
     println!("Computing flow {from_str} -> {to_str} using {edges_file}");
     let edges = (if csv {
         io::read_edges_csv(edges_file)
+    } else if safes {
+        io::import_from_safes_binary(edges_file).map(|db| db.edges().clone())
     } else {
         io::read_edges_binary(edges_file)
     })
-    .unwrap_or_else(|_| panic!("Error loading edges from file \"{edges_file}\"."));
+    .unwrap_or_else(|_| panic!("Error loading edges/safes from file \"{edges_file}\"."));
     println!("Read {} edges", edges.edge_count());
     let (flow, transfers) = graph::compute_flow(
         &Address::from(from_str.as_str()),
