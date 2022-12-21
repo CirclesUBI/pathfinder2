@@ -4,7 +4,7 @@ use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
 #[derive(Default, Debug)]
 pub struct DB {
-    safes: BTreeMap<Address, Safe>,
+    pub safes: BTreeMap<Address, Safe>,
     token_owner: BTreeMap<Address, Address>,
     edges: EdgeDB,
 }

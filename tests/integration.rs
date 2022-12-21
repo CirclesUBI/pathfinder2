@@ -1,12 +1,77 @@
 use pathfinder2::graph::compute_flow;
-use pathfinder2::io::read_edges_binary;
+use pathfinder2::io::{import_from_safes_binary, read_edges_binary};
 use pathfinder2::types::edge::EdgeDB;
 use pathfinder2::types::{Address, U256};
+use std::fmt::Arguments;
 use std::process::Command;
 
 const HUB_ADDRESS: &str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
 const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[],uint256[])";
-const RPC_URL: &str = "https://rpc.gnosischain.com";
+const RPC_URL: &str = "https://rpc.eu-central-2.gateway.fm/v3/gnosis/archival/mainnet?apiKey=uoxaT2YDCCz_aITXD3mwAfjbOwYd2k88.La01lOweqqP4X6zx";
+
+const USER_TO_TOKEN: &str = "userToToken(address)";
+
+fn call_hub(signature: &str, from: &Address, arguments: Vec<String>, block: u64) -> String {
+    let output = Command::new("cast")
+        .args(
+            [
+                vec!["call", HUB_ADDRESS, signature],
+                arguments.iter().map(|x| x.as_str()).collect::<Vec<_>>(),
+                vec![
+                    "--rpc-url",
+                    RPC_URL,
+                    "--from",
+                    from.to_string().as_str(),
+                    "--block",
+                    block.to_string().as_str(),
+                ],
+            ]
+            .concat(),
+        )
+        .output()
+        .expect("Error calling cast.");
+    let stdout = String::from_utf8(output.stdout).unwrap().trim().to_string();
+    let stderr = String::from_utf8(output.stderr).unwrap().trim().to_string();
+    println!("Transfer: {stdout} {stderr}",);
+    assert!(stderr.is_empty());
+    stdout
+}
+
+// fn user_to_token(user: &Address) -> Address {}
+
+#[test]
+fn debug() {
+    let martinsavings = Address::from("0x052b4793d50d37FD3BFcBf93AAC9Cda6292F81Fa");
+    let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
+    let vbuterin = Address::from("0xCAABD9353b7E8e09dE8e2cBC02aa5A6C3807e70d");
+    let circlescoop = Address::from("0x9BA1Bcd88E99d6E1E03252A70A63FEa83Bf1208c");
+    let earlyadopter = Address::from("0x939b2731997922f21ab0a0bab500a949c0fc3550");
+    let ubipromoter = Address::from("0x5D976cE82B8851e9d4841a41f97D0Fe42c628617");
+    let ernst = Address::from("0x57928Fb15ffB7303b65EDC326dc4dc38150008e1");
+    let ajmaq = Address::from("0xeb9784F6A6e3d03466974Cb3a5a77c79afbA14e7");
+    let stefan = Address::from("0x11fC3Cb5818C6703d9b49a20285178273FEdca49");
+    let sarah = Address::from("0x55E0fF8d8eF8194aBF0F6378076193B4554376C6");
+    let ber = Address::from("0x05698e7346ea67cfb088f64ad8962b18137d17c0");
+    let kaustubh = Address::from("0x02B50e87C577084b9659a625870b4A6e8a8E9238");
+
+    let db = import_from_safes_binary("safes.dat").unwrap();
+
+    println!(
+        "BALANCE mantin: {:?}",
+        db.safes.get(&martin).unwrap().balance(&martin)
+    );
+    println!(
+        "safe martin: {:?}",
+        db.safes.get(&martin).unwrap() //.balance(&martin)
+    );
+
+    let from = ber; //ubipromoter; //martin;
+    let to = vbuterin;
+    let value = U256::MAX; //U256::from("10000000000000000000000");
+    let hops = None; //Some(200);
+
+    test_flow(&from, &to, db.edges(), value, hops);
+}
 
 #[test]
 fn test_flow_chris_martin() {
@@ -54,6 +119,13 @@ fn read_edges() -> EdgeDB {
     read_edges_binary(&"edges.dat".to_string()).unwrap()
 }
 
+fn read_db() -> EdgeDB {
+    import_from_safes_binary("safes.dat")
+        .unwrap()
+        .edges()
+        .clone()
+}
+
 fn test_flow(
     source: &Address,
     sink: &Address,
@@ -88,6 +160,18 @@ fn test_flow(
         .map(|e| e.capacity.to_decimal())
         .collect::<Vec<String>>()
         .join(",");
+    // let output = call_hub(
+    //     TRANSFER_THROUGH_SIG,
+    //     &Address::from(HUB_ADDRESS),
+    //     vec![
+    //         format!("[{token_owners}]"),
+    //         format!("[{froms}]"),
+    //         format!("[{tos}]"),
+    //         format!("[{amounts}]"),
+    //     ],
+    //     25476000,
+    // );
+
     let output = Command::new("cast")
         .args([
             "call",
@@ -101,6 +185,8 @@ fn test_flow(
             RPC_URL,
             "--from",
             &transfers.1[0].from.to_string(),
+            "--block",
+            "25476000",
         ])
         .output()
         .expect("Error calling cast.");

@@ -65,10 +65,10 @@ pub fn compute_flow(
         extract_transfers(source, sink, &flow, used_edges)
     };
     println!("Num transfers: {}", transfers.len());
-    (flow, transfers)
-    // let simplified_transfers = simplify_transfers(transfers);
-    // println!("After simplification: {}", simplified_transfers.len());
-    // (flow, simplified_transfers)
+    //(flow, transfers)
+    let simplified_transfers = simplify_transfers(transfers);
+    println!("After simplification: {}", simplified_transfers.len());
+    (flow, simplified_transfers)
 }
 
 pub fn transfers_to_dot(edges: &Vec<Edge>) -> String {
