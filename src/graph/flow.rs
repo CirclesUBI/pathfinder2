@@ -3,8 +3,8 @@ use crate::graph::{as_trust_node, Node};
 use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use std::cmp::min;
-use std::collections::VecDeque;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Write;
 
 pub fn compute_flow(
@@ -67,7 +67,8 @@ pub fn compute_flow(
     println!("Num transfers: {}", transfers.len());
     let simplified_transfers = simplify_transfers(transfers);
     println!("After simplification: {}", simplified_transfers.len());
-    (flow, simplified_transfers)
+    let sorted_transfers = sort_transfers(simplified_transfers);
+    (flow, sorted_transfers)
 }
 
 pub fn transfers_to_dot(edges: &Vec<Edge>) -> String {
@@ -484,6 +485,29 @@ fn simplify_transfers(mut transfers: Vec<Edge>) -> Vec<Edge> {
             }
         })
         .collect::<Vec<_>>()
+}
+
+fn sort_transfers(transfers: Vec<Edge>) -> Vec<Edge> {
+    // We have to sort the transfers to satisfy the following condition:
+    // A user can send away their own tokens only after it has received all (trust) transfers.
+
+    let mut receives_to_wait_for: HashMap<Address, u64> = HashMap::new();
+    for e in &transfers {
+        *receives_to_wait_for.entry(e.to).or_default() += 1;
+        receives_to_wait_for.entry(e.from).or_default();
+    }
+    let mut result = Vec::new();
+    let mut queue = transfers.into_iter().collect::<VecDeque<Edge>>();
+    while let Some(e) = queue.pop_front() {
+        //println!("queue size: {}", queue.len());
+        if *receives_to_wait_for.get(&e.from).unwrap() == 0 {
+            *receives_to_wait_for.get_mut(&e.to).unwrap() -= 1;
+            result.push(e)
+        } else {
+            queue.push_back(e);
+        }
+    }
+    result
 }
 
 #[cfg(test)]
