@@ -29,8 +29,7 @@ impl Safe {
             let amount = (receiver.balance(&receiver.token_address)
                 * U256::from(trust_percentage as u128))
                 / U256::from(100);
-            let scaled_receiver_balance =
-                receiver_balance * U256::from((100 - trust_percentage) as u128) / U256::from(100);
+            let scaled_receiver_balance = receiver_balance; // * U256::from((100 - trust_percentage) as u128) / U256::from(100);
             if amount < scaled_receiver_balance {
                 U256::from(0)
             } else {
