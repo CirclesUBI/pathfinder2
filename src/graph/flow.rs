@@ -4,7 +4,7 @@ use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use std::cmp::min;
 use std::collections::VecDeque;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, BTreeSet};
 use std::fmt::Write;
 
 pub fn compute_flow(
@@ -15,7 +15,7 @@ pub fn compute_flow(
     max_distance: Option<u64>,
 ) -> (U256, Vec<Edge>) {
     let mut adjacencies = Adjacencies::new(edges);
-    let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
+    let mut used_edges: BTreeMap<Node, BTreeMap<Node, U256>> = BTreeMap::new();
 
     let mut flow = U256::default();
     loop {
@@ -109,7 +109,7 @@ fn augmenting_path(
     adjacencies: &mut Adjacencies,
     max_distance: Option<u64>,
 ) -> (U256, Vec<Node>) {
-    let mut parent = HashMap::new();
+    let mut parent = BTreeMap::new();
     if *source == *sink {
         return (U256::default(), vec![]);
     }
@@ -139,7 +139,7 @@ fn augmenting_path(
     (U256::default(), vec![])
 }
 
-fn trace(parent: HashMap<Node, Node>, source: &Node, sink: &Node) -> Vec<Node> {
+fn trace(parent: BTreeMap<Node, Node>, source: &Node, sink: &Node) -> Vec<Node> {
     let mut t = vec![sink.clone()];
     let mut node = sink;
     loop {
@@ -154,8 +154,8 @@ fn trace(parent: HashMap<Node, Node>, source: &Node, sink: &Node) -> Vec<Node> {
 
 #[allow(dead_code)]
 fn to_dot(
-    edges: &HashMap<Node, HashMap<Node, U256>>,
-    account_balances: &HashMap<Address, U256>,
+    edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+    account_balances: &BTreeMap<Address, U256>,
 ) -> String {
     let mut out = String::new();
     writeln!(out, "digraph used_edges {{").expect("");
@@ -176,7 +176,7 @@ fn prune_flow(
     source: &Address,
     sink: &Address,
     mut flow_to_prune: U256,
-    used_edges: &mut HashMap<Node, HashMap<Node, U256>>,
+    used_edges: &mut BTreeMap<Node, BTreeMap<Node, U256>>,
 ) -> U256 {
     // Note the path length is negative to sort by longest shortest path first.
     let edges_by_path_length = compute_edges_by_path_length(source, sink, used_edges);
@@ -225,9 +225,9 @@ fn prune_flow(
 fn compute_edges_by_path_length(
     source: &Address,
     sink: &Address,
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
-) -> BTreeMap<i64, HashSet<(Node, Node)>> {
-    let mut result = BTreeMap::<i64, HashSet<(Node, Node)>>::new();
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+) -> BTreeMap<i64, BTreeSet<(Node, Node)>> {
+    let mut result = BTreeMap::<i64, BTreeSet<(Node, Node)>>::new();
     let from_source = distance_from_source(&Node::Node(*source), used_edges);
     let to_sink = distance_to_sink(&Node::Node(*sink), used_edges);
     for (s, edges) in used_edges {
@@ -244,15 +244,15 @@ fn compute_edges_by_path_length(
 
 fn distance_from_source(
     source: &Node,
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
-) -> HashMap<Node, i64> {
-    let mut distances = HashMap::<Node, i64>::new();
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+) -> BTreeMap<Node, i64> {
+    let mut distances = BTreeMap::<Node, i64>::new();
     let mut to_process = VecDeque::<Node>::new();
     distances.insert(source.clone(), 0);
     to_process.push_back(source.clone());
 
     while let Some(n) = to_process.pop_front() {
-        for (t, capacity) in used_edges.get(&n).unwrap_or(&HashMap::new()) {
+        for (t, capacity) in used_edges.get(&n).unwrap_or(&BTreeMap::new()) {
             if *capacity > U256::from(0) && !distances.contains_key(t) {
                 distances.insert(t.clone(), distances[&n] + 1);
                 to_process.push_back(t.clone());
@@ -265,15 +265,15 @@ fn distance_from_source(
 
 fn distance_to_sink(
     sink: &Node,
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
-) -> HashMap<Node, i64> {
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+) -> BTreeMap<Node, i64> {
     distance_from_source(sink, &reverse_edges(used_edges))
 }
 
 fn reverse_edges(
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
-) -> HashMap<Node, HashMap<Node, U256>> {
-    let mut reversed: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+) -> BTreeMap<Node, BTreeMap<Node, U256>> {
+    let mut reversed: BTreeMap<Node, BTreeMap<Node, U256>> = BTreeMap::new();
     for (n, edges) in used_edges {
         for (t, capacity) in edges {
             reversed
@@ -286,8 +286,8 @@ fn reverse_edges(
 }
 
 fn smallest_edge_in_set(
-    all_edges: &HashMap<Node, HashMap<Node, U256>>,
-    edge_set: &HashSet<(Node, Node)>,
+    all_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+    edge_set: &BTreeSet<(Node, Node)>,
 ) -> Option<(Node, Node)> {
     if let Some((a, b, _)) = edge_set
         .iter()
@@ -314,7 +314,7 @@ fn smallest_edge_in_set(
 }
 
 fn smallest_edge_from(
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
     n: &Node,
 ) -> Option<(Node, U256)> {
     used_edges.get(n).and_then(|out| {
@@ -328,7 +328,7 @@ fn smallest_edge_from(
 }
 
 fn smallest_edge_to(
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
     n: &Node,
 ) -> Option<(Node, U256)> {
     used_edges
@@ -345,7 +345,7 @@ fn smallest_edge_to(
 /// Removes the edge (potentially partially), removing a given amount of flow.
 /// Returns the remaining flow to prune if the edge was too small.
 fn prune_edge(
-    used_edges: &mut HashMap<Node, HashMap<Node, U256>>,
+    used_edges: &mut BTreeMap<Node, BTreeMap<Node, U256>>,
     edge: (&Node, &Node),
     flow_to_prune: U256,
 ) -> U256 {
@@ -357,7 +357,7 @@ fn prune_edge(
 }
 
 fn reduce_capacity(
-    used_edges: &mut HashMap<Node, HashMap<Node, U256>>,
+    used_edges: &mut BTreeMap<Node, BTreeMap<Node, U256>>,
     (a, b): (&Node, &Node),
     reduction: &U256,
 ) {
@@ -375,7 +375,7 @@ enum PruneDirection {
 }
 
 fn prune_path(
-    used_edges: &mut HashMap<Node, HashMap<Node, U256>>,
+    used_edges: &mut BTreeMap<Node, BTreeMap<Node, U256>>,
     n: &Node,
     mut flow_to_prune: U256,
     direction: PruneDirection,
@@ -401,10 +401,10 @@ fn extract_transfers(
     source: &Address,
     sink: &Address,
     amount: &U256,
-    mut used_edges: HashMap<Node, HashMap<Node, U256>>,
+    mut used_edges: BTreeMap<Node, BTreeMap<Node, U256>>,
 ) -> Vec<Edge> {
     let mut transfers: Vec<Edge> = Vec::new();
-    let mut account_balances: HashMap<Address, U256> = HashMap::new();
+    let mut account_balances: BTreeMap<Address, U256> = BTreeMap::new();
     account_balances.insert(*source, *amount);
 
     while !account_balances.is_empty()
@@ -431,13 +431,13 @@ fn extract_transfers(
 }
 
 fn next_full_capacity_edge(
-    used_edges: &HashMap<Node, HashMap<Node, U256>>,
-    account_balances: &HashMap<Address, U256>,
+    used_edges: &BTreeMap<Node, BTreeMap<Node, U256>>,
+    account_balances: &BTreeMap<Address, U256>,
 ) -> Edge {
     for (account, balance) in account_balances {
         for intermediate in used_edges
             .get(&Node::Node(*account))
-            .unwrap_or(&HashMap::new())
+            .unwrap_or(&BTreeMap::new())
             .keys()
         {
             for (trust_node, capacity) in &used_edges[intermediate] {

@@ -18,7 +18,7 @@ mod flow;
 // C: if "token" is C's token (this is a "send to owner" edge): infinity or the sum of all incoming edges.
 //    otherwise: the max of all capacity-network edges of the form (*, token, to) or the trust limit of "to" for "token" tokens.
 
-#[derive(Debug, Eq, PartialEq, Hash, Clone)]
+#[derive(Debug, Eq, PartialEq, Hash, Clone, PartialOrd, Ord)]
 pub enum Node {
     Node(Address),
     BalanceNode(Address, Address),
