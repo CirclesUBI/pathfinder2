@@ -25,15 +25,21 @@ impl Safe {
             self.balance(&self.token_address)
         } else {
             let receiver_balance = receiver.balance(&self.token_address);
+
             let amount = (receiver.balance(&receiver.token_address)
                 * U256::from(trust_percentage as u128))
                 / U256::from(100);
-            if amount < receiver_balance {
+            let scaled_receiver_balance =
+                receiver_balance * U256::from((100 - trust_percentage) as u128) / U256::from(100);
+            if amount < scaled_receiver_balance {
                 U256::from(0)
             } else {
                 // TODO it should not be "min" - the second constraint
                 // is set by the balance edge.
-                min(amount - receiver_balance, self.balance(&self.token_address))
+                min(
+                    amount - scaled_receiver_balance,
+                    self.balance(&self.token_address),
+                )
             }
         }
     }
