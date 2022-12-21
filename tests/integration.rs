@@ -56,19 +56,19 @@ fn debug() {
 
     let db = import_from_safes_binary("safes.dat").unwrap();
 
-    println!(
-        "BALANCE mantin: {:?}",
-        db.safes.get(&martin).unwrap().balance(&martin)
-    );
-    println!(
-        "safe martin: {:?}",
-        db.safes.get(&martin).unwrap() //.balance(&martin)
-    );
+    // println!(
+    //     "BALANCE mantin: {:?}",
+    //     db.safes.get(&martin).unwrap().balance(&martin)
+    // );
+    // println!(
+    //     "safe martin: {:?}",
+    //     db.safes.get(&martin).unwrap() //.balance(&martin)
+    // );
 
-    let from = ber; //ubipromoter; //martin;
-    let to = vbuterin;
-    let value = U256::MAX; //U256::from("10000000000000000000000");
-    let hops = None; //Some(200);
+    let from = kaustubh; //ubipromoter; //martin;
+    let to = martin;
+    let value = U256::MAX; //U256::from("48602879401574055983200");
+    let hops = Some(400);
 
     test_flow(&from, &to, db.edges(), value, hops);
 }
@@ -195,4 +195,8 @@ fn test_flow(
     println!("Transfer: {stdout} {stderr}",);
     assert_eq!(stdout, "0x".to_string());
     assert!(stderr.is_empty());
+    println!(
+        "Successful transfer of {}",
+        transfers.0.to_decimal_fraction()
+    );
 }

@@ -104,9 +104,6 @@ pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
         let token_owner = read_address(&mut f, &address_index)?;
         assert!(token_owner != Address::default());
         let balance = read_u256(&mut f)?;
-        if user == Address::from("0x42cedde51198d1773590311e2a340dc06b24cb37") {
-            println!("Bal {token_owner}: {balance}");
-        }
         if balance != U256::from(0) {
             safes
                 .entry(user)
