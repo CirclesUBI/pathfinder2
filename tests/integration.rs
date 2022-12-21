@@ -10,34 +10,36 @@ const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[
 const RPC_URL: &str = "https://rpc.eu-central-2.gateway.fm/v3/gnosis/archival/mainnet?apiKey=uoxaT2YDCCz_aITXD3mwAfjbOwYd2k88.La01lOweqqP4X6zx";
 
 const USER_TO_TOKEN: &str = "userToToken(address)";
+const TEST_BLOCK: u64 = 25476000;
 
-fn call_hub(signature: &str, from: &Address, arguments: Vec<String>, block: u64) -> String {
-    let output = Command::new("cast")
-        .args(
-            [
-                vec!["call", HUB_ADDRESS, signature],
-                arguments.iter().map(|x| x.as_str()).collect::<Vec<_>>(),
-                vec![
-                    "--rpc-url",
-                    RPC_URL,
-                    "--from",
-                    from.to_string().as_str(),
-                    "--block",
-                    block.to_string().as_str(),
-                ],
-            ]
-            .concat(),
-        )
-        .output()
-        .expect("Error calling cast.");
-    let stdout = String::from_utf8(output.stdout).unwrap().trim().to_string();
-    let stderr = String::from_utf8(output.stderr).unwrap().trim().to_string();
-    println!("Transfer: {stdout} {stderr}",);
-    assert!(stderr.is_empty());
-    stdout
-}
+// fn call_hub(signature: &str, arguments: Vec<String>, block: u64, from: Option<&Address>) -> String {
+//     let output = Command::new("cast")
+//         .args(
+//             [
+//                 vec!["call", HUB_ADDRESS, signature],
+//                 arguments.iter().map(|x| x.as_str()).collect::<Vec<_>>(),
+//                 vec!["--rpc-url", RPC_URL],
+//                 if let Some(from) = from {
+//                     vec!["--from", from.to_string().as_str()]
+//                 } else {
+//                     vec![]
+//                 },
+//                 vec!["--block", block.to_string().as_str()],
+//             ]
+//             .concat(),
+//         )
+//         .output()
+//         .expect("Error calling cast.");
+//     let stdout = String::from_utf8(output.stdout).unwrap().trim().to_string();
+//     let stderr = String::from_utf8(output.stderr).unwrap().trim().to_string();
+//     println!("Transfer: {stdout} {stderr}",);
+//     assert!(stderr.is_empty());
+//     stdout
+// }
 
-// fn user_to_token(user: &Address) -> Address {}
+// fn user_to_token(user: &Address) -> Address {
+//     call_hub(USER_TO_TOKEN, user.to_string(), TEST_BLOCK, None);
+// }
 
 #[test]
 fn debug() {
@@ -53,9 +55,40 @@ fn debug() {
     let sarah = Address::from("0x55E0fF8d8eF8194aBF0F6378076193B4554376C6");
     let ber = Address::from("0x05698e7346ea67cfb088f64ad8962b18137d17c0");
     let kaustubh = Address::from("0x02B50e87C577084b9659a625870b4A6e8a8E9238");
+    let daniel = Address::from("0xde374ece6fa50e781e81aac78e811b33d16912c7");
+    let all = vec![
+        martinsavings,
+        martin,
+        vbuterin,
+        circlescoop,
+        earlyadopter,
+        ubipromoter,
+        ernst,
+        ajmaq,
+        stefan,
+        sarah,
+        ber,
+        kaustubh,
+    ];
 
     let db = import_from_safes_binary("safes.dat").unwrap();
 
+    println!("DEBUC");
+    let limit = db
+        .safes
+        .get(&Address::from("0x9a0bbbbd3789f184ca88f2f6a40f42406cb842ac"))
+        .unwrap()
+        .trust_transfer_limit(
+            db.safes
+                .get(&Address::from("0x3cb406def33aed0abd6d02a75fedca8e2e8d1a2e"))
+                .unwrap(),
+            50,
+        );
+    println!("transfer limit: {limit}");
+    //     token: 0x9a0bbbbd3789f184ca88f2f6a40f42406cb842ac
+    // src: 0x9a0bbbbd3789f184ca88f2f6a40f42406cb842ac
+    // dest: 0x3cb406def33aed0abd6d02a75fedca8e2e8d1a2e
+    // wad: 56215193215459277770
     // println!(
     //     "BALANCE mantin: {:?}",
     //     db.safes.get(&martin).unwrap().balance(&martin)
@@ -65,12 +98,17 @@ fn debug() {
     //     db.safes.get(&martin).unwrap() //.balance(&martin)
     // );
 
-    let from = kaustubh; //ubipromoter; //martin;
-    let to = martin;
-    let value = U256::MAX; //U256::from("48602879401574055983200");
-    let hops = Some(400);
+    for from in &all {
+        for to in &all {
+            let value = U256::MAX; //U256::from("100000000000000000");
+            let hops = Some(6);
+            println!("FroM: {from} to: {to}");
+            test_flow(from, to, db.edges(), value, hops);
+        }
+    }
 
-    test_flow(&from, &to, db.edges(), value, hops);
+    // let from = daniel; //Address::from("0x9a0bbbbd3789f184ca88f2f6a40f42406cb842ac"); //ubipromoter; //martin;
+    // let to = martin; //Address::from("0x3cb406def33aed0abd6d02a75fedca8e2e8d1a2e");
 }
 
 #[test]
@@ -135,6 +173,9 @@ fn test_flow(
 ) {
     let transfers = compute_flow(source, sink, edges, requested_flow, max_distance);
     println!("{transfers:?}");
+    if transfers.0 == U256::from(0) {
+        return;
+    }
 
     let token_owners = transfers
         .1
