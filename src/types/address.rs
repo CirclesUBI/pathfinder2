@@ -7,6 +7,10 @@ impl Address {
     pub fn short(&self) -> String {
         format!("{self}")[..8].to_string()
     }
+
+    pub fn to_bytes(self) -> [u8; 20] {
+        self.0
+    }
 }
 
 impl Debug for Address {

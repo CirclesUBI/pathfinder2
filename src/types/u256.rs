@@ -1,6 +1,8 @@
 use std::fmt::Debug;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::ops::Div;
+use std::ops::Mul;
 use std::ops::{Add, AddAssign, Neg, Sub, SubAssign};
 
 use num_bigint::BigUint;
@@ -13,12 +15,23 @@ impl U256 {
         U256([high, low])
     }
     pub const MAX: U256 = U256::new(u128::MAX, u128::MAX);
+    pub fn from_bigint_truncating(input: BigUint) -> U256 {
+        let digits = input.to_u64_digits();
+        U256([
+            u128::from(*digits.get(3).unwrap_or(&0)) << 64
+                | u128::from(*digits.get(2).unwrap_or(&0)),
+            u128::from(*digits.get(1).unwrap_or(&0)) << 64
+                | u128::from(*digits.first().unwrap_or(&0)),
+        ])
+    }
+
     pub fn to_decimal(self) -> String {
         let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
         format!("{value}")
     }
+
     pub fn to_decimal_fraction(self) -> String {
-        let value = BigUint::from(self.0[0]) << 128 | BigUint::from(self.0[1]);
+        let value: BigUint = self.into();
         let formatted = format!("{value}");
         match formatted.len() {
             18.. => {
@@ -33,6 +46,19 @@ impl U256 {
             }
             _ => "0+eps".to_string(),
         }
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut result = Vec::new();
+        for i in 0..=1 {
+            for j in (0..16).rev() {
+                let b = ((self.0[i] >> (j * 8)) & 0xff) as u8;
+                if b != 0 || !result.is_empty() {
+                    result.push(b);
+                }
+            }
+        }
+        result
     }
 }
 
@@ -85,6 +111,12 @@ impl From<&str> for U256 {
     }
 }
 
+impl From<U256> for BigUint {
+    fn from(value: U256) -> Self {
+        BigUint::from(value.0[0]) << 128 | BigUint::from(value.0[1])
+    }
+}
+
 impl Add for U256 {
     type Output = Self;
     fn add(self, rhs: Self) -> Self {
@@ -115,6 +147,26 @@ impl Sub for U256 {
     type Output = Self;
     fn sub(self, rhs: Self) -> Self {
         self + (-rhs)
+    }
+}
+
+impl Mul for U256 {
+    type Output = Self;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        let self_big: BigUint = self.into();
+        let rhs_big: BigUint = rhs.into();
+        U256::from_bigint_truncating(self_big * rhs_big)
+    }
+}
+
+impl Div for U256 {
+    type Output = Self;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        let self_big: BigUint = self.into();
+        let rhs_big: BigUint = rhs.into();
+        U256::from_bigint_truncating(self_big / rhs_big)
     }
 }
 
@@ -220,6 +272,45 @@ mod test {
         assert_eq!(
             U256::from("340282366920938463463374607431768211456").to_decimal(),
             "340282366920938463463374607431768211456"
+        );
+    }
+
+    #[test]
+    fn to_mul_div() {
+        let two = U256::from("2");
+        let three = U256::from(3);
+        let large = U256::from("0x100000000000000000000000000000000");
+        assert_eq!(two * three, U256::from(6));
+        assert_eq!(three / two, U256::from(1));
+        assert_eq!((large * two) / two, large);
+        assert_eq!(
+            large / three,
+            U256::from("0x55555555555555555555555555555555")
+        );
+        assert_eq!(large * large, U256::from("0"));
+        assert_eq!(
+            (large / two) * large,
+            U256::from("0x8000000000000000000000000000000000000000000000000000000000000000")
+        );
+    }
+
+    #[test]
+    fn to_bytes() {
+        let zero = U256::from("0");
+        assert_eq!(zero.to_bytes(), Vec::<u8>::new());
+        assert_eq!(U256::from("2").to_bytes(), vec![2]);
+        assert_eq!(
+            U256::from("0x100000000000000000000000000000000").to_bytes(),
+            vec![1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        );
+        assert_eq!(
+            U256::from("0xff00000000000000000000000000000001").to_bytes(),
+            vec![255, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1]
+        );
+        assert_eq!(
+            U256::from("0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")
+                .to_bytes(),
+            vec![255; 32]
         );
     }
 }

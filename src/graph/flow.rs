@@ -3,8 +3,8 @@ use crate::graph::{as_trust_node, Node};
 use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use std::cmp::min;
-use std::collections::VecDeque;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::{BTreeMap, HashSet};
+use std::collections::{HashMap, VecDeque};
 use std::fmt::Write;
 
 pub fn compute_flow(
@@ -52,7 +52,7 @@ pub fn compute_flow(
         !out.is_empty()
     });
 
-    println!("Max flow: {flow}");
+    println!("Max flow: {}", flow.to_decimal());
 
     if flow > requested_flow {
         let still_to_prune = prune_flow(source, sink, flow - requested_flow, &mut used_edges);
@@ -64,11 +64,11 @@ pub fn compute_flow(
     } else {
         extract_transfers(source, sink, &flow, used_edges)
     };
-    // TODO We can simplify the transfers:
-    // If we have a transfer (A, B, T) and a transfer (B, C, T),
-    // We can always replace both by (A, C, T).
     println!("Num transfers: {}", transfers.len());
-    (flow, transfers)
+    let simplified_transfers = simplify_transfers(transfers);
+    println!("After simplification: {}", simplified_transfers.len());
+    let sorted_transfers = sort_transfers(simplified_transfers);
+    (flow, sorted_transfers)
 }
 
 pub fn transfers_to_dot(edges: &Vec<Edge>) -> String {
@@ -456,6 +456,54 @@ fn next_full_capacity_edge(
     panic!();
 }
 
+fn find_pair_to_simplify(transfers: &Vec<Edge>) -> Option<(usize, usize)> {
+    let l = transfers.len();
+    (0..l)
+        .flat_map(move |x| (0..l).map(move |y| (x, y)))
+        .find(|(i, j)| {
+            // We do not need matching capacity, but only then will we save
+            // a transfer.
+            let a = transfers[*i];
+            let b = transfers[*j];
+            *i != *j && a.to == b.from && a.token == b.token && a.capacity == b.capacity
+        })
+}
+
+fn simplify_transfers(mut transfers: Vec<Edge>) -> Vec<Edge> {
+    // We can simplify the transfers:
+    // If we have a transfer (A, B, T) and a transfer (B, C, T),
+    // We can always replace both by (A, C, T).
+
+    while let Some((i, j)) = find_pair_to_simplify(&transfers) {
+        transfers[i].to = transfers[j].to;
+        transfers.remove(j);
+    }
+    transfers
+}
+
+fn sort_transfers(transfers: Vec<Edge>) -> Vec<Edge> {
+    // We have to sort the transfers to satisfy the following condition:
+    // A user can send away their own tokens only after it has received all (trust) transfers.
+
+    let mut receives_to_wait_for: HashMap<Address, u64> = HashMap::new();
+    for e in &transfers {
+        *receives_to_wait_for.entry(e.to).or_default() += 1;
+        receives_to_wait_for.entry(e.from).or_default();
+    }
+    let mut result = Vec::new();
+    let mut queue = transfers.into_iter().collect::<VecDeque<Edge>>();
+    while let Some(e) = queue.pop_front() {
+        //println!("queue size: {}", queue.len());
+        if *receives_to_wait_for.get(&e.from).unwrap() == 0 {
+            *receives_to_wait_for.get_mut(&e.to).unwrap() -= 1;
+            result.push(e)
+        } else {
+            queue.push_back(e);
+        }
+    }
+    result
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
@@ -627,7 +675,7 @@ mod test {
 
     #[test]
     fn trust_transfer_limit() {
-        let (a, b, c, d, t1, t2) = addresses();
+        let (a, b, c, d, ..) = addresses();
         let edges = build_edges(vec![
             // The following two edges should be balance-limited,
             // i.e. a -> first intermediate is limited by the max of the two.
