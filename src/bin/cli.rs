@@ -101,29 +101,29 @@ fn main() {
     };
     println!("{result}");
 
-    // let token_owners = transfers
-    //     .iter()
-    //     .map(|e| e.token.to_string())
-    //     .collect::<Vec<String>>()
-    //     .join(",");
-    // let froms = transfers
-    //     .iter()
-    //     .map(|e| e.from.to_string())
-    //     .collect::<Vec<String>>()
-    //     .join(",");
-    // let tos = transfers
-    //     .iter()
-    //     .map(|e| e.to.to_string())
-    //     .collect::<Vec<String>>()
-    //     .join(",");
-    // let amounts = transfers
-    //     .iter()
-    //     .map(|e| e.capacity.to_decimal())
-    //     .collect::<Vec<String>>()
-    //     .join(",");
+    let token_owners = transfers
+        .iter()
+        .map(|e| e.token.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let froms = transfers
+        .iter()
+        .map(|e| e.from.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let tos = transfers
+        .iter()
+        .map(|e| e.to.to_string())
+        .collect::<Vec<String>>()
+        .join(",");
+    let amounts = transfers
+        .iter()
+        .map(|e| e.capacity.to_decimal())
+        .collect::<Vec<String>>()
+        .join(",");
 
-    //println!("To check, run the following command (requires foundry):");
-    //println!("cast call '{HUB_ADDRESS}' '{TRANSFER_THROUGH_SIG}' '[{token_owners}]' '[{froms}]' '[{tos}]' '[{amounts}]' --rpc-url {RPC_URL} --from {}", &transfers[0].from.to_string());
+    println!("To check, run the following command (requires foundry):");
+    println!("cast call '{HUB_ADDRESS}' '{TRANSFER_THROUGH_SIG}' '[{token_owners}]' '[{froms}]' '[{tos}]' '[{amounts}]' --rpc-url {RPC_URL} --from {}", &transfers[0].from.to_string());
 
     if let Some(dotfile) = dotfile {
         File::create(&dotfile)
