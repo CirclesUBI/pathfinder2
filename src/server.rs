@@ -143,6 +143,7 @@ fn compute_transfer(
     } else {
         vec![None]
     };
+    let max_transfers = request.params["max_transfers"].as_u64();
     for max_distance in max_distances {
         let (flow, transfers) = graph::compute_flow(
             &Address::from(request.params["from"].to_string().as_str()),
@@ -154,6 +155,7 @@ fn compute_transfer(
                 U256::MAX
             },
             max_distance,
+            max_transfers,
         );
         println!("Computed flow with max distance {max_distance:?}: {flow}");
         socket.write_all(

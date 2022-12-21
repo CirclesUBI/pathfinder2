@@ -13,6 +13,7 @@ pub fn compute_flow(
     edges: &EdgeDB,
     requested_flow: U256,
     max_distance: Option<u64>,
+    max_transfers: Option<u64>,
 ) -> (U256, Vec<Edge>) {
     let mut adjacencies = Adjacencies::new(edges);
     let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
@@ -57,6 +58,15 @@ pub fn compute_flow(
     if flow > requested_flow {
         let still_to_prune = prune_flow(source, sink, flow - requested_flow, &mut used_edges);
         flow = requested_flow + still_to_prune;
+    }
+
+    if let Some(max_transfers) = max_transfers {
+        let lost = reduce_transfers(max_transfers * 3, &mut used_edges);
+        println!(
+            "Capacity lost by transfer count reduction: {}",
+            lost.to_decimal_fraction()
+        );
+        flow -= lost;
     }
 
     let transfers = if flow == U256::from(0) {
@@ -217,6 +227,25 @@ fn prune_flow(
         }
     }
     flow_to_prune
+}
+
+fn reduce_transfers(
+    max_transfers: u64,
+    used_edges: &mut HashMap<Node, HashMap<Node, U256>>,
+) -> U256 {
+    let mut reduced_flow = U256::from(0);
+    while used_edges.len() > max_transfers as usize {
+        let all_edges = used_edges
+            .iter()
+            .flat_map(|(f, e)| e.iter().map(|(t, c)| ((f.clone(), t.clone()), c)));
+        if all_edges.clone().count() <= max_transfers as usize {
+            return reduced_flow;
+        }
+        let ((f, t), c) = all_edges.min_by_key(|(_, c)| *c).unwrap();
+        reduced_flow += *c;
+        prune_edge(used_edges, (&f, &t), *c);
+    }
+    reduced_flow
 }
 
 /// Returns a map from the negative shortest path length to the edge.
@@ -531,7 +560,7 @@ mod test {
             token: t,
             capacity: U256::from(10),
         }]);
-        let flow = compute_flow(&a, &b, &edges, U256::MAX, None);
+        let flow = compute_flow(&a, &b, &edges, U256::MAX, None, None);
         assert_eq!(
             flow,
             (
@@ -563,7 +592,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let flow = compute_flow(&a, &c, &edges, U256::MAX, None);
+        let flow = compute_flow(&a, &c, &edges, U256::MAX, None, None);
         assert_eq!(
             flow,
             (
@@ -615,7 +644,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None);
+        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None);
         flow.1.sort();
         assert_eq!(
             flow,
@@ -649,7 +678,7 @@ mod test {
                 ]
             )
         );
-        let mut pruned_flow = compute_flow(&a, &d, &edges, U256::from(6), None);
+        let mut pruned_flow = compute_flow(&a, &d, &edges, U256::from(6), None, None);
         pruned_flow.1.sort();
         assert_eq!(
             pruned_flow,
@@ -707,7 +736,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None);
+        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None);
         flow.1.sort();
         println!("{:?}", &flow.1);
         assert_eq!(flow.0, U256::from(9));

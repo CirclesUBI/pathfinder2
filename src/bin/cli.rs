@@ -41,7 +41,7 @@ fn main() {
         return;
     }
 
-    if args.len() < 4 {
+    if args.len() < 5 {
         println!("Usage: cli [--csv] [--safes] <from> <to> <edges.dat> [--dot <dotfile>]");
         println!(
             "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]"
@@ -49,12 +49,16 @@ fn main() {
         println!(
             "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]"
         );
+        println!(
+            "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops> <max_flow> <max_transfers> [--dot <dotfile>]"
+        );
         println!("Option --csv reads edges.dat in csv format instead of binary.");
         println!("Option --safes reads a safes.dat file instead of an edges.dat file.");
         return;
     }
     let mut max_hops = None;
     let mut max_flow = U256::MAX;
+    let mut max_transfers: Option<u64> = None;
     let (from_str, to_str, edges_file) = (&args[1], &args[2], &args[3]);
     if args.len() >= 5 {
         max_hops = Some(
@@ -64,6 +68,9 @@ fn main() {
         );
         if args.len() >= 6 {
             max_flow = args[5].as_str().into();
+            if args.len() >= 7 {
+                max_transfers = Some(args[6].as_str().parse::<i64>().unwrap() as u64);
+            }
         }
     }
 
@@ -83,6 +90,7 @@ fn main() {
         &edges,
         max_flow,
         max_hops,
+        max_transfers,
     );
     println!("Found flow: {}", flow.to_decimal());
     //println!("{:?}", transfers);
