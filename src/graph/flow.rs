@@ -457,38 +457,32 @@ fn next_full_capacity_edge(
     panic!();
 }
 
+fn find_pair_to_simplify(transfers: &Vec<Edge>) -> Option<(usize, usize)> {
+    let l = transfers.len();
+    (0..l)
+        .flat_map(move |x| (0..l).map(move |y| (x, y)))
+        .find(|(i, j)| {
+            // We do not need matching capacity, but only then will we save
+            // a transfer.
+            let a = transfers[*i];
+            let b = transfers[*j];
+            *i != *j && a.to == b.from && a.token == b.token && a.capacity == b.capacity
+        })
+}
+
 fn simplify_transfers(mut transfers: Vec<Edge>) -> Vec<Edge> {
     // We can simplify the transfers:
     // If we have a transfer (A, B, T) and a transfer (B, C, T),
     // We can always replace both by (A, C, T).
 
-    let mut simplifications = Vec::new();
-    for (i, a) in transfers.iter().enumerate() {
-        for (j, b) in transfers[i + 1..].iter().enumerate() {
-            // We do not need matching capacity, but only then will we save
-            // a transfer.
-            if a.to == b.from && a.token == b.token && a.capacity == b.capacity {
-                simplifications.push((i, i + j + 1));
-            }
-        }
-    }
-    for (i, j) in simplifications.iter().rev() {
-        transfers[*i].to = transfers[*j].to;
+    while let Some((i, j)) = find_pair_to_simplify(&transfers) {
+        transfers[i].to = transfers[j].to;
+        transfers.remove(j);
     }
     transfers
-        .into_iter()
-        .enumerate()
-        .flat_map(|(i, e)| {
-            if simplifications.iter().any(|(_, j)| i == *j) {
-                None
-            } else {
-                Some(e)
-            }
-        })
-        .collect::<Vec<_>>()
 }
 
-fn sort_transfers(mut transfers: Vec<Edge>) -> Vec<Edge> {
+fn sort_transfers(transfers: Vec<Edge>) -> Vec<Edge> {
     // We have to sort the transfers to satisfy the following condition:
     // A user can send away their own tokens only after it has received all (trust) transfers.
 
