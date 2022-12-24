@@ -99,9 +99,9 @@ fn main() {
         maxFlowValue: flow.to_decimal(),
         transferSteps: transfers.iter().enumerate().map(|(i, e)| {
             json::object!{
-                from: e.from.to_string(),
-                to: e.to.to_string(),
-                token: e.token.to_string(),
+                from: e.from.to_checksummed_hex(),
+                to: e.to.to_checksummed_hex(),
+                token: e.token.to_checksummed_hex(),
                 value: e.capacity.to_decimal(),
                 step: i,
             }

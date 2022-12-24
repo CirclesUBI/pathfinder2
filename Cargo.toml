@@ -7,6 +7,7 @@ default-run = "server"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+eth_checksum = "0.1.2"
 json = "^0.12.4"
 num-bigint = "^0.4.3"
 serde = { version = "1.0.149", features = ["serde_derive"] }

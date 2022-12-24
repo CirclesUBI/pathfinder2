@@ -11,6 +11,10 @@ impl Address {
     pub fn to_bytes(self) -> [u8; 20] {
         self.0
     }
+
+    pub fn to_checksummed_hex(&self) -> String {
+        eth_checksum::checksum(&self.to_string())
+    }
 }
 
 impl Debug for Address {
