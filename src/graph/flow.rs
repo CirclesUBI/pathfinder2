@@ -241,7 +241,9 @@ fn reduce_transfers(
         if all_edges.clone().count() <= max_transfers as usize {
             return reduced_flow;
         }
-        let ((f, t), c) = all_edges.min_by_key(|(_, c)| *c).unwrap();
+        let ((f, t), c) = all_edges
+            .min_by_key(|(addr, c)| (*c, addr.clone()))
+            .unwrap();
         reduced_flow += *c;
         prune_edge(used_edges, (&f, &t), *c);
     }
@@ -334,7 +336,7 @@ fn smallest_edge_in_set(
             (a, b, capacity)
         })
         .filter(|(_, _, capacity)| capacity.is_some())
-        .min_by_key(|(_, _, capacity)| capacity.unwrap())
+        .min_by_key(|(a, b, capacity)| (capacity.unwrap(), *a, *b))
     {
         Some((a.clone(), b.clone()))
     } else {
@@ -348,9 +350,9 @@ fn smallest_edge_from(
 ) -> Option<(Node, U256)> {
     used_edges.get(n).and_then(|out| {
         out.iter()
-            .min_by_key(|(_, c)| {
+            .min_by_key(|(addr, c)| {
                 assert!(**c != U256::from(0));
-                *c
+                (*c, *addr)
             })
             .map(|(t, c)| (t.clone(), *c))
     })
@@ -364,9 +366,9 @@ fn smallest_edge_to(
         .iter()
         .filter(|(_, out)| out.contains_key(n))
         .map(|(t, out)| (t, out[n]))
-        .min_by_key(|(_, c)| {
+        .min_by_key(|(addr, c)| {
             assert!(*c != U256::from(0));
-            *c
+            (*c, *addr)
         })
         .map(|(t, c)| (t.clone(), c))
 }
@@ -433,7 +435,7 @@ fn extract_transfers(
     mut used_edges: HashMap<Node, HashMap<Node, U256>>,
 ) -> Vec<Edge> {
     let mut transfers: Vec<Edge> = Vec::new();
-    let mut account_balances: HashMap<Address, U256> = HashMap::new();
+    let mut account_balances: BTreeMap<Address, U256> = BTreeMap::new();
     account_balances.insert(*source, *amount);
 
     while !account_balances.is_empty()
@@ -461,25 +463,30 @@ fn extract_transfers(
 
 fn next_full_capacity_edge(
     used_edges: &HashMap<Node, HashMap<Node, U256>>,
-    account_balances: &HashMap<Address, U256>,
+    account_balances: &BTreeMap<Address, U256>,
 ) -> Edge {
     for (account, balance) in account_balances {
-        for intermediate in used_edges
+        let edge = used_edges
             .get(&Node::Node(*account))
-            .unwrap_or(&HashMap::new())
-            .keys()
-        {
-            for (trust_node, capacity) in &used_edges[intermediate] {
-                let (to, token) = as_trust_node(trust_node);
-                if *balance >= *capacity {
-                    return Edge {
-                        from: *account,
-                        to: *to,
-                        token: *token,
-                        capacity: *capacity,
-                    };
-                }
-            }
+            .map(|v| {
+                v.keys().flat_map(|intermediate| {
+                    used_edges[intermediate]
+                        .iter()
+                        .filter(|(_, capacity)| *balance >= **capacity)
+                        .map(|(trust_node, capacity)| {
+                            let (to, token) = as_trust_node(trust_node);
+                            Edge {
+                                from: *account,
+                                to: *to,
+                                token: *token,
+                                capacity: *capacity,
+                            }
+                        })
+                })
+            })
+            .and_then(|edges| edges.min());
+        if let Some(edge) = edge {
+            return edge;
         }
     }
     panic!();
