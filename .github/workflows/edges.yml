@@ -1,0 +1,42 @@
+name: Edges
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron:  '7 */5 * * *'
+
+jobs:
+  updateEdges:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - name: Build
+        run: cargo build --verbose --release
+      - name: Download safes
+        run: ./download_safes.py
+      - name: Convert to binary
+        run: |
+          cargo run --release --bin convert -- --safes-json safes.json --edges-bin edges.dat
+          mv edges.dat /tmp/
+      - name: Push to gh-pages
+        env:
+          DEPLOY_KEY: ${{ secrets.DEPLOY_KEY }}
+        run: |
+          git config --local user.email "chris@ethereum.org"
+          git config --local user.name "chriseth_automation"
+          git remote set-url origin "$(git config --get remote.origin.url | sed 's#http.*com/#git@github.com:#g')"
+          eval `ssh-agent -t 60 -s`
+          ssh-add - <<< "${{ secrets.DEPLOY_KEY }}"
+          mkdir -p ~/.ssh/
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          git fetch
+          git checkout -B gh-pages origin/main
+          git clean -f -d
+          mv /tmp/edges.dat ./
+          git add edges.dat
+          git commit -m "Add edges."
+
+          git push -f origin gh-pages
+          ssh-agent -k
