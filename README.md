@@ -44,3 +44,17 @@ For example
 Computes a transfer of at most `1000000000000000000`, exploring 3 hops.
 
 If you specify `--dot <dotfile>`, a graphviz/dot representation of the transfer graph is written to the given file.
+
+#### Conversion Tool
+
+The conversion tool can convert between different ways of representing the edge and trust relations in the circles system.
+All data formats are described in https://hackmd.io/Gg04t7gjQKeDW2Q6Jchp0Q
+
+It can read an edge database both in CSV and binary formatand a "safe database" in json and binary format.
+The output is always an edge database in either binary or CSV format.
+
+Example:
+
+`cargo run --bin convert --safes-json safes.json --edges-bin edges.dat`
+
+Converts a safe json file called `safes.json` into a binary edge database file called `edges.dat`.
