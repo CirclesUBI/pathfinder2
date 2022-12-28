@@ -16,7 +16,7 @@ https://chriseth.github.io/pathfinder2/edges.dat
 
 #### Using the Server
 
-`cargo run --release <port>` will start a JSON-RPC server listening on the given port.
+`cargo run --release <ip-address>:<port>` will start a JSON-RPC server listening on the given port.
 
 It implements the interface specified in https://hackmd.io/Gg04t7gjQKeDW2Q6Jchp0Q
 
