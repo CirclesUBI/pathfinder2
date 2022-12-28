@@ -49,7 +49,7 @@ impl<'a> Adjacencies<'a> {
             .into_iter()
             .filter(|(_, cap)| *cap != U256::from(0))
             .collect::<Vec<(Node, U256)>>();
-        result.sort_unstable_by_key(|(_, capacity)| Reverse(*capacity));
+        result.sort_unstable_by_key(|(addr, capacity)| (Reverse(*capacity), addr.clone()));
         result
     }
 

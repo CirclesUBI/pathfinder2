@@ -143,6 +143,7 @@ fn compute_transfer(
     } else {
         vec![None]
     };
+    let max_transfers = request.params["max_transfers"].as_u64();
     for max_distance in max_distances {
         let (flow, transfers) = graph::compute_flow(
             &Address::from(request.params["from"].to_string().as_str()),
@@ -154,6 +155,7 @@ fn compute_transfer(
                 U256::MAX
             },
             max_distance,
+            max_transfers,
         );
         println!("Computed flow with max distance {max_distance:?}: {flow}");
         socket.write_all(
@@ -164,9 +166,9 @@ fn compute_transfer(
                         flow: flow.to_string(),
                         final: max_distance.is_none(),
                         transfers: transfers.into_iter().map(|e| json::object! {
-                            from: e.from.to_string(),
-                            to: e.to.to_string(),
-                            token_owner: e.token.to_string(),
+                            from: e.from.to_checksummed_hex(),
+                            to: e.to.to_checksummed_hex(),
+                            token_owner: e.token.to_checksummed_hex(),
                             value: e.capacity.to_string()
                         }).collect::<Vec<_>>(),
                     },

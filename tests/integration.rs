@@ -61,7 +61,7 @@ fn test_flow(
     requested_flow: U256,
     max_distance: Option<u64>,
 ) {
-    let transfers = compute_flow(source, sink, edges, requested_flow, max_distance);
+    let transfers = compute_flow(source, sink, edges, requested_flow, max_distance, None);
     println!("{transfers:?}");
 
     let token_owners = transfers
