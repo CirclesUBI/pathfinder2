@@ -9,6 +9,7 @@ const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[
 const RPC_URL: &str = "https://rpc.gnosischain.com";
 
 #[test]
+#[ignore = "This seems to generate VM errors"]
 fn test_flow_chris_martin() {
     let chriseth = Address::from("0x8DC7e86fF693e9032A0F41711b5581a04b26Be2E");
     let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
@@ -31,6 +32,7 @@ fn test_flow_chris_martin() {
 }
 
 #[test]
+#[ignore = "This seems to generate VM errors"]
 fn test_flow_large() {
     let large_source = Address::from("0x9BA1Bcd88E99d6E1E03252A70A63FEa83Bf1208c");
     let large_dest = Address::from("0x939b2731997922f21ab0a0bab500a949c0fc3550");
