@@ -20,6 +20,9 @@ https://chriseth.github.io/pathfinder2/edges.dat
 
 It implements the interface specified in https://hackmd.io/Gg04t7gjQKeDW2Q6Jchp0Q
 
+The HTTP server implementation ignores most parts of the HTTP request and header, including the path,
+so it essentially responds on all paths.
+
 It has two performance parameters that are currently hardcoded in the source:
 
 Number of worker threads: 4
