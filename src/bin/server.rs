@@ -3,10 +3,10 @@ use std::env;
 use pathfinder2::server;
 
 fn main() {
-    let port = if env::args().len() == 1 {
-        8080
+    let listen_at_arg = env::args().nth(1);
+    if listen_at_arg.is_some() {
+        server::start_server(listen_at_arg.unwrap().as_str(), 10, 4);
     } else {
-        env::args().nth(1).unwrap().as_str().parse::<u16>().unwrap()
-    };
-    server::start_server(port, 10, 4);
+        server::start_server("127.0.0.1:8080", 10, 4);
+    }
 }
