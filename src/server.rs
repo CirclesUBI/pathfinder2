@@ -18,7 +18,7 @@ struct JsonRpcRequest {
     params: JsonValue,
 }
 
-pub fn start_server(port: u16, queue_size: usize, threads: u64) {
+pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
     let edges: Arc<RwLock<Arc<EdgeDB>>> = Arc::new(RwLock::new(Arc::new(EdgeDB::default())));
 
     let (sender, receiver) = mpsc::sync_channel(queue_size);
@@ -33,8 +33,7 @@ pub fn start_server(port: u16, queue_size: usize, threads: u64) {
             }
         });
     }
-    let listener =
-        TcpListener::bind(format!("127.0.0.1:{port}")).expect("Could not create server.");
+    let listener = TcpListener::bind(listen_at).expect("Could not create server.");
     loop {
         match listener.accept() {
             Ok((socket, _)) => match sender.try_send(socket) {
