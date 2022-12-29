@@ -38,12 +38,21 @@ impl DB {
             .or_default() = balance;
     }
 
-    pub fn limit_percentage(&self, user: &Address, can_send_to: &Address) -> u8 {
-        self.safes
-            .get(user)
-            .and_then(|safe| safe.limit_percentage.get(can_send_to))
-            .cloned()
-            .unwrap_or_default()
+    /// Updates the trust percentage of the given user and transaction receiver.
+    /// Does not automatically update the transfer edge set.
+    /// @remark Only properly works on a system where token address is the owner's address.
+    pub fn update_limit_percentage(&mut self, user: Address, can_send_to: Address, percentage: u8) {
+        *self
+            .safes
+            .entry(user)
+            .or_insert(Safe {
+                token_address: user,
+                organization: false,
+                ..Default::default()
+            })
+            .limit_percentage
+            .entry(can_send_to)
+            .or_default() = percentage;
     }
 
     pub fn edges(&self) -> &EdgeDB {

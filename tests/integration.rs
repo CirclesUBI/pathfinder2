@@ -1,6 +1,6 @@
 use pathfinder2::graph::compute_flow;
 use pathfinder2::io::import_from_safes_binary;
-use pathfinder2::live_patch::transfer_check::check_transfers;
+use pathfinder2::live_patch::transfer_check::update_accounts_in_transfers;
 use pathfinder2::safe_db::db::DB;
 use pathfinder2::types::{Address, U256};
 use std::process::Command;
@@ -66,7 +66,7 @@ fn test_flow(
 ) {
     let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
     println!("{transfers:?}");
-    check_transfers(&transfers.1, db);
+    update_accounts_in_transfers(&transfers.1, db);
     let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
     println!("{transfers:?}");
     //check_transfers(&transfers.1, db);
