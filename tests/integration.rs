@@ -69,17 +69,17 @@ fn test_flow(
     max_distance: Option<u64>,
 ) {
     let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
-    println!("{transfers:?}");
-    update_accounts_in_transfers(&transfers.1, db);
-    export_safes_to_binary(db, "/tmp/safes.dat").unwrap();
-    let transfers = compute_flow(
-        source,
-        sink,
-        db.edges(),
-        requested_flow,
-        max_distance,
-        Some(10),
-    );
+    // println!("{transfers:?}");
+    // update_accounts_in_transfers(&transfers.1, db);
+    // export_safes_to_binary(db, "/tmp/safes.dat").unwrap();
+    // let transfers = compute_flow(
+    //     source,
+    //     sink,
+    //     db.edges(),
+    //     requested_flow,
+    //     max_distance,
+    //     Some(10),
+    // );
     println!("{transfers:?}");
     //check_transfers(&transfers.1, db);
 
