@@ -21,6 +21,10 @@ impl DB {
         db
     }
 
+    pub fn safes(&self) -> &BTreeMap<Address, Safe> {
+        &self.safes
+    }
+
     /// Updates the balance of the given user and token.
     /// Does not automatically update the transfer edge set.
     /// @remark Only properly works on a system where token address is the owner's address.
