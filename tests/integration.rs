@@ -1,6 +1,7 @@
 use pathfinder2::graph::compute_flow;
-use pathfinder2::io::read_edges_binary;
-use pathfinder2::types::edge::EdgeDB;
+use pathfinder2::io::import_from_safes_binary;
+use pathfinder2::live_patch::transfer_check::check_transfers;
+use pathfinder2::safe_db::db::DB;
 use pathfinder2::types::{Address, U256};
 use std::process::Command;
 
@@ -13,19 +14,19 @@ const RPC_URL: &str = "https://rpc.gnosischain.com";
 fn test_flow_chris_martin() {
     let chriseth = Address::from("0x8DC7e86fF693e9032A0F41711b5581a04b26Be2E");
     let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
-    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, None);
-    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, Some(2));
+    test_flow(&chriseth, &martin, &mut read_db(), U256::MAX, None);
+    test_flow(&chriseth, &martin, &mut read_db(), U256::MAX, Some(2));
     test_flow(
         &chriseth,
         &martin,
-        &read_edges(),
+        &mut read_db(),
         U256::from(71152921504606846976),
         Some(2),
     );
     test_flow(
         &chriseth,
         &martin,
-        &read_edges(),
+        &mut read_db(),
         U256::from(51152921504606846976),
         Some(2),
     );
@@ -39,32 +40,36 @@ fn test_flow_large() {
     test_flow(
         &large_source,
         &large_dest,
-        &read_edges(),
+        &mut read_db(),
         U256::MAX,
         Some(4),
     );
     test_flow(
         &large_source,
         &large_dest,
-        &read_edges(),
+        &mut read_db(),
         U256::MAX,
         Some(6),
     );
 }
 
-fn read_edges() -> EdgeDB {
-    read_edges_binary(&"edges.dat".to_string()).unwrap()
+fn read_db() -> DB {
+    import_from_safes_binary("safes.dat").unwrap()
 }
 
 fn test_flow(
     source: &Address,
     sink: &Address,
-    edges: &EdgeDB,
+    db: &mut DB,
     requested_flow: U256,
     max_distance: Option<u64>,
 ) {
-    let transfers = compute_flow(source, sink, edges, requested_flow, max_distance, None);
+    let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
     println!("{transfers:?}");
+    check_transfers(&transfers.1, db);
+    let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
+    println!("{transfers:?}");
+    //check_transfers(&transfers.1, db);
 
     let token_owners = transfers
         .1

@@ -1,11 +1,2 @@
-mod cast_interface;
-
-/*
-
-For an edge (A, B, T) in a list of transfers, we need:
-
- - T.balanceof(A)
- - T.balanceof(B)
- -
-
-*/
+pub mod cast_interface;
+pub mod transfer_check;

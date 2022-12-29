@@ -21,11 +21,36 @@ impl DB {
         db
     }
 
+    /// Updates the balance of the given user and token.
+    /// Does not automatically update the transfer edge set.
+    /// @remark Only properly works on a system where token address is the owner's address.
+    pub fn update_balance(&mut self, user: Address, token: Address, balance: U256) {
+        *self
+            .safes
+            .entry(user)
+            .or_insert(Safe {
+                token_address: user,
+                organization: false,
+                ..Default::default()
+            })
+            .balances
+            .entry(token)
+            .or_default() = balance;
+    }
+
+    pub fn limit_percentage(&self, user: &Address, can_send_to: &Address) -> u8 {
+        self.safes
+            .get(user)
+            .and_then(|safe| safe.limit_percentage.get(can_send_to))
+            .cloned()
+            .unwrap_or_default()
+    }
+
     pub fn edges(&self) -> &EdgeDB {
         &self.edges
     }
 
-    fn compute_edges(&mut self) {
+    pub fn compute_edges(&mut self) {
         let mut edges = vec![];
         for (user, safe) in &self.safes {
             // trust connections

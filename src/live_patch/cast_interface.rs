@@ -66,15 +66,16 @@ pub fn is_organization(user: &Address) -> bool {
     U256::from(result_str.as_str()) != U256::from(0)
 }
 
-//const LIMIT: &str = "limits(address,address)";
 pub fn limit_percentage(user: &Address, can_send_to: &Address) -> U256 {
     let result_str = call_contract(
         &circles_hub(),
         "limits(address,address)",
-        &[&user.to_string(), &can_send_to.to_string()],
+        &[&can_send_to.to_string(), &user.to_string()],
         None,
     );
-    U256::from(result_str.as_str())
+    let limit = U256::from(result_str.as_str());
+    assert!(limit <= U256::from(100));
+    limit
 }
 
 #[cfg(test)]
