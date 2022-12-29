@@ -1,5 +1,5 @@
 use pathfinder2::graph::compute_flow;
-use pathfinder2::io::import_from_safes_binary;
+use pathfinder2::io::{export_safes_to_binary, import_from_safes_binary};
 use pathfinder2::live_patch::transfer_check::update_accounts_in_transfers;
 use pathfinder2::safe_db::db::DB;
 use pathfinder2::types::{Address, U256};
@@ -74,6 +74,7 @@ fn test_flow(
     );
     println!("{transfers:?}");
     update_accounts_in_transfers(&transfers.1, db);
+    export_safes_to_binary(db, "/tmp/safes.dat").unwrap();
     let transfers = compute_flow(
         source,
         sink,
