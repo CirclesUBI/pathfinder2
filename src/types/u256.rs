@@ -89,7 +89,7 @@ impl From<&str> for U256 {
             let high_hex = &item[high_start..low_start];
             // disallow + and - prefixes
             assert!(
-                high_hex.as_bytes().first() != Some(&54)
+                high_hex.as_bytes().first() != Some(&45)
                     && high_hex.as_bytes().first() != Some(&43)
             );
             let high = if high_hex.is_empty() {
