@@ -22,6 +22,7 @@ lastID = 0
 count = 1000
 safes = []
 success = False
+print("Block number: %d" % int(blockNumber, 0))
 for totalTries in range(500):
     print("ID: %s" % lastID)
     result = requests.post(API, data='{"query":"{ safes( orderBy: id, first: %d, where: { id_gt: \\"%s\\" } ) %s }"}' % (count, lastID, query)).json()
