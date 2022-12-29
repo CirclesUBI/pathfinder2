@@ -14,8 +14,11 @@ const RPC_URL: &str = "https://rpc.gnosischain.com";
 fn test_flow_chris_martin() {
     let chriseth = Address::from("0x8DC7e86fF693e9032A0F41711b5581a04b26Be2E");
     let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
-    test_flow(&chriseth, &martin, &mut read_db(), U256::MAX, None);
+    println!("One");
     test_flow(&chriseth, &martin, &mut read_db(), U256::MAX, Some(2));
+    println!("2");
+    //test_flow(&chriseth, &martin, &mut read_db(), U256::MAX, Some(8));
+    println!("3");
     test_flow(
         &chriseth,
         &martin,
@@ -23,12 +26,13 @@ fn test_flow_chris_martin() {
         U256::from(71152921504606846976),
         Some(2),
     );
+    println!("4");
     test_flow(
         &chriseth,
         &martin,
         &mut read_db(),
         U256::from(51152921504606846976),
-        Some(2),
+        Some(8),
     );
 }
 
@@ -41,14 +45,14 @@ fn test_flow_large() {
         &large_source,
         &large_dest,
         &mut read_db(),
-        U256::MAX,
+        U256::from(445531716362998064313),
         Some(4),
     );
     test_flow(
         &large_source,
         &large_dest,
         &mut read_db(),
-        U256::MAX,
+        U256::from(405531716362998064313),
         Some(6),
     );
 }
@@ -64,14 +68,7 @@ fn test_flow(
     requested_flow: U256,
     max_distance: Option<u64>,
 ) {
-    let transfers = compute_flow(
-        source,
-        sink,
-        db.edges(),
-        requested_flow,
-        max_distance,
-        Some(10),
-    );
+    let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
     println!("{transfers:?}");
     update_accounts_in_transfers(&transfers.1, db);
     export_safes_to_binary(db, "/tmp/safes.dat").unwrap();

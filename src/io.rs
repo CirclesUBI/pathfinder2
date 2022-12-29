@@ -124,6 +124,7 @@ pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
 }
 
 pub fn export_safes_to_binary(db: &DB, path: &str) -> Result<(), io::Error> {
+    println!("Exporting...");
     let mut file = File::create(path)?;
 
     let address_index = write_address_index(&mut file, addresses_from_safes(db.safes()))?;
@@ -160,6 +161,7 @@ pub fn export_safes_to_binary(db: &DB, path: &str) -> Result<(), io::Error> {
         write_address(&mut file, token_owner, &address_index)?;
         write_u256(&mut file, amount)?;
     }
+    println!("Done.");
     Ok(())
 }
 
