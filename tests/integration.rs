@@ -64,10 +64,24 @@ fn test_flow(
     requested_flow: U256,
     max_distance: Option<u64>,
 ) {
-    let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
+    let transfers = compute_flow(
+        source,
+        sink,
+        db.edges(),
+        requested_flow,
+        max_distance,
+        Some(10),
+    );
     println!("{transfers:?}");
     update_accounts_in_transfers(&transfers.1, db);
-    let transfers = compute_flow(source, sink, db.edges(), requested_flow, max_distance, None);
+    let transfers = compute_flow(
+        source,
+        sink,
+        db.edges(),
+        requested_flow,
+        max_distance,
+        Some(10),
+    );
     println!("{transfers:?}");
     //check_transfers(&transfers.1, db);
 
