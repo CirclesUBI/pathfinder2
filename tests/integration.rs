@@ -1,5 +1,5 @@
 use pathfinder2::graph::compute_flow;
-use pathfinder2::io::read_edges_binary;
+use pathfinder2::io::import_from_safes_binary;
 use pathfinder2::types::edge::EdgeDB;
 use pathfinder2::types::{Address, U256};
 use std::process::Command;
@@ -9,51 +9,36 @@ const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[
 const RPC_URL: &str = "https://rpc.gnosischain.com";
 
 #[test]
-#[ignore = "This seems to generate VM errors"]
 fn test_flow_chris_martin() {
+    let edges = read_edges();
     let chriseth = Address::from("0x8DC7e86fF693e9032A0F41711b5581a04b26Be2E");
     let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
-    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, None);
-    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, Some(2));
+    test_flow(&chriseth, &martin, &edges, U256::MAX, None);
+    test_flow(&chriseth, &martin, &edges, U256::MAX, Some(2));
     test_flow(
         &chriseth,
         &martin,
-        &read_edges(),
+        &edges,
         U256::from(71152921504606846976),
         Some(2),
     );
-    test_flow(
-        &chriseth,
-        &martin,
-        &read_edges(),
-        U256::from(51152921504606846976),
-        Some(2),
-    );
+    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, Some(2));
 }
 
 #[test]
-#[ignore = "This seems to generate VM errors"]
 fn test_flow_large() {
+    let edges = read_edges();
     let large_source = Address::from("0x9BA1Bcd88E99d6E1E03252A70A63FEa83Bf1208c");
     let large_dest = Address::from("0x939b2731997922f21ab0a0bab500a949c0fc3550");
-    test_flow(
-        &large_source,
-        &large_dest,
-        &read_edges(),
-        U256::MAX,
-        Some(4),
-    );
-    test_flow(
-        &large_source,
-        &large_dest,
-        &read_edges(),
-        U256::MAX,
-        Some(6),
-    );
+    test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(4));
+    test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(6));
 }
 
 fn read_edges() -> EdgeDB {
-    read_edges_binary(&"edges.dat".to_string()).unwrap()
+    import_from_safes_binary("capacity_graph.db")
+        .unwrap()
+        .edges()
+        .clone()
 }
 
 fn test_flow(

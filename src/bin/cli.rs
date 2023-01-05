@@ -41,7 +41,7 @@ fn main() {
         return;
     }
 
-    if args.len() < 5 {
+    if args.len() < 4 {
         println!("Usage: cli [--csv] [--safes] <from> <to> <edges.dat> [--dot <dotfile>]");
         println!(
             "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]"
