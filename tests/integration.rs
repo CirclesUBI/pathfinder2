@@ -6,7 +6,7 @@ use std::process::Command;
 
 const HUB_ADDRESS: &str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
 const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[],uint256[])";
-const RPC_URL: &str = "https://rpc.gnosischain.com";
+const RPC_URL: &str = "https://rpc.circlesubi.id";
 
 #[test]
 fn test_flow_chris_martin() {
