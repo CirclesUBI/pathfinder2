@@ -1,0 +1,17 @@
+name: Build and push the dev image
+
+on:
+  push:
+    branches: [ feature/dockerfile ]
+
+jobs:
+  call-build-and-push:
+    name: Trigger container build and push
+    permissions:
+      contents: read
+      id-token: write
+    uses: ./.github/workflows/build-and-push.yml
+    with:
+      ref: "${{ github.ref }}"
+      image: "pathfinder2"
+    secrets: inherit
