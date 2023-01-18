@@ -10,8 +10,6 @@ jobs:
     permissions:
       contents: read
       id-token: write
+      packages: write
     uses: ./.github/workflows/build-and-push.yml
-    with:
-      ref: "${{ github.ref }}"
-      image: "pathfinder2"
     secrets: inherit
