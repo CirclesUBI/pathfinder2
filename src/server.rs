@@ -162,13 +162,13 @@ fn compute_transfer(
                 &(jsonrpc_result(
                     request.id.clone(),
                     json::object! {
-                        flow: flow.to_string(),
+                        flow: flow.to_decimal(),
                         final: max_distance.is_none(),
                         transfers: transfers.into_iter().map(|e| json::object! {
                             from: e.from.to_checksummed_hex(),
                             to: e.to.to_checksummed_hex(),
                             token_owner: e.token.to_checksummed_hex(),
-                            value: e.capacity.to_string()
+                            value: e.capacity.to_decimal(),
                         }).collect::<Vec<_>>(),
                     },
                 ) + "\r\n"),
