@@ -2,7 +2,7 @@ name: Build and push the dev image
 
 on:
   push:
-    branches: [ feature/dockerfile ]
+    branches: [ dev ]
 
 jobs:
   call-build-and-push:
