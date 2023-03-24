@@ -10,5 +10,5 @@ jobs:
     name: Call
     uses: CirclesUBI/.github/.github/workflows/build-and-push.yml@main
     with:
-      image-name: "pathfinder2
+      image-name: pathfinder2
     secrets: inherit
