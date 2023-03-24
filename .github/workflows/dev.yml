@@ -1,0 +1,15 @@
+name: Build and push the dev image
+
+on:
+  push:
+    branches: [ dev ]
+
+jobs:
+  call-build-and-push:
+    name: Trigger container build and push
+    permissions:
+      contents: read
+      id-token: write
+      packages: write
+    uses: ./.github/workflows/build-and-push.yml
+    secrets: inherit
