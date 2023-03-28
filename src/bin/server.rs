@@ -11,13 +11,13 @@ fn main() {
         .nth(2)
         .unwrap_or_else(|| "10".to_string())
         .parse::<usize>()
-        .unwrap();;
+        .unwrap();
 
     let thread_count =  env::args()
         .nth(3)
         .unwrap_or_else(|| "4".to_string())
         .parse::<u64>()
-        .unwrap();;
+        .unwrap();
 
     server::start_server(&listen_at, queue_size, thread_count);
 }
