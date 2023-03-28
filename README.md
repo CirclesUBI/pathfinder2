@@ -1,7 +1,7 @@
 # Pathfinder2
 
-Pathfinder is a collection of tools related to
-computing transitive transfers in the
+Pathfinder is a collection of tools related to  
+computing transitive transfers in the  
 [CirclesUBI](https://joincircles.net) trust graph.
 
 ## Building
