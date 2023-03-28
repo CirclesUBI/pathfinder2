@@ -7,13 +7,13 @@ fn main() {
         .nth(1)
         .unwrap_or_else(|| "127.0.0.1:8080".to_string());
 
-    let queue_size =  env::args()
+    let queue_size = env::args()
         .nth(2)
         .unwrap_or_else(|| "10".to_string())
         .parse::<usize>()
         .unwrap();
 
-    let thread_count =  env::args()
+    let thread_count = env::args()
         .nth(3)
         .unwrap_or_else(|| "4".to_string())
         .parse::<u64>()
