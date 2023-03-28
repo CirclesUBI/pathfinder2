@@ -1,9 +1,11 @@
-name: Images
+name: Container Image
 
 on:
   push:
     branches:
-      - dev
+    - main
+    - next
+    - dev
 
 jobs:
   call-build-and-push:
