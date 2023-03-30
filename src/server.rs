@@ -21,6 +21,20 @@ struct JsonRpcRequest {
     params: JsonValue,
 }
 
+struct InputValidationError(String);
+impl Error for InputValidationError {}
+
+impl Debug for InputValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error: {}", self.0)
+    }
+}
+impl Display for InputValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error: {}", self.0)
+    }
+}
+
 pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
     let edges: Arc<RwLock<Arc<EdgeDB>>> = Arc::new(RwLock::new(Arc::new(EdgeDB::default())));
 
@@ -133,21 +147,6 @@ fn load_safes_binary(edges: &RwLock<Arc<EdgeDB>>, file: &str) -> Result<usize, B
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
 }
-
-struct InputValidationError(String);
-
-impl Debug for InputValidationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error: {}", self.0)
-    }
-}
-impl Display for InputValidationError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Error: {}", self.0)
-    }
-}
-
-impl Error for InputValidationError {}
 
 fn compute_transfer(
     request: JsonRpcRequest,
