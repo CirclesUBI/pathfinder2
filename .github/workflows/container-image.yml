@@ -1,0 +1,16 @@
+name: Container Image
+
+on:
+  push:
+    branches:
+    - main
+    - next
+    - dev
+
+jobs:
+  call-build-and-push:
+    name: Call
+    uses: CirclesUBI/.github/.github/workflows/build-and-push.yml@main
+    with:
+      image-name: pathfinder2
+    secrets: inherit
