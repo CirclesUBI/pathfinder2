@@ -1,4 +1,3 @@
-use std::env;
 use std::fs::File;
 use std::io::Write;
 
@@ -6,6 +5,46 @@ use pathfinder2::graph;
 use pathfinder2::io;
 use pathfinder2::types::Address;
 use pathfinder2::types::U256;
+
+use clap::Parser;
+
+#[derive(Parser)]
+#[command(author, version, about = "Compute the transitive transfers from one source to one destination", long_about = None)]
+struct Cli {
+    /// Source address
+    from: String,
+
+    /// Destination address
+    to: String,
+
+    /// Edges file to use to compute_flow
+    edges_file: String, // maybe PathBuff
+
+    /// Number of hops to explore
+    max_hops: Option<u64>,
+
+    /// Maximum amount of circles to transfer
+    max_transfers: Option<u64>,
+
+    /// Maximum flow to compute
+    max_flow: Option<U256>,
+
+    /// Reads edges.dat in csv format instead of binary.
+    #[arg(short, long)]
+    csv: bool,
+
+    /// Reads a safes.dat file instead of an edges.dat file.
+    #[arg(short, long)]
+    safes: bool,
+
+    /// <dotfile> a graphviz/dot representation of the transfer graph is written to the given file
+    #[arg(short, long)]
+    dotfile: Option<String>,
+
+    /// Format the result before printing it
+    #[arg(short, long)]
+    pretty: bool,
+}
 
 #[allow(dead_code)]
 const HUB_ADDRESS: &str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
@@ -15,85 +54,49 @@ const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[
 const RPC_URL: &str = "https://rpc.gnosischain.com";
 
 fn main() {
-    let (dotfile, mut args) =
-        if env::args().len() >= 2 && env::args().nth_back(1).unwrap() == "--dot" {
-            (
-                Some(env::args().last().unwrap()),
-                env::args().rev().skip(2).rev().collect::<Vec<_>>(),
-            )
-        } else {
-            (None, env::args().collect::<Vec<_>>())
-        };
-    let csv = if args.get(1) == Some(&"--csv".to_string()) {
-        args = [vec![args[0].clone()], args[2..].to_vec()].concat();
-        true
-    } else {
-        false
-    };
-    let safes = if args.get(1) == Some(&"--safes".to_string()) {
-        args = [vec![args[0].clone()], args[2..].to_vec()].concat();
-        true
-    } else {
-        false
-    };
-    if safes && csv {
+    let cli = Cli::parse();
+
+    // safes and csv are exclusive
+    if cli.csv && cli.safes {
         println!("Options --safes and --csv cannot be used together.");
         return;
     }
 
-    if args.len() < 4 {
-        println!("Usage: cli [--csv] [--safes] <from> <to> <edges.dat> [--dot <dotfile>]");
-        println!(
-            "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops>  [--dot <dotfile>]"
-        );
-        println!(
-            "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops> <max_flow> [--dot <dotfile>]"
-        );
-        println!(
-            "Usage: cli [--csv] [--safes] <from> <to> <edges.dat> <max_hops> <max_flow> <max_transfers> [--dot <dotfile>]"
-        );
-        println!("Option --csv reads edges.dat in csv format instead of binary.");
-        println!("Option --safes reads a safes.dat file instead of an edges.dat file.");
-        return;
-    }
-    let mut max_hops = None;
-    let mut max_flow = U256::MAX;
-    let mut max_transfers: Option<u64> = None;
-    let (from_str, to_str, edges_file) = (&args[1], &args[2], &args[3]);
-    if args.len() >= 5 {
-        max_hops = Some(
-            args[4]
-                .parse()
-                .unwrap_or_else(|_| panic!("Expected number of hops, but got: {}", args[4])),
-        );
-        if args.len() >= 6 {
-            max_flow = args[5].as_str().into();
-            if args.len() >= 7 {
-                max_transfers = Some(args[6].as_str().parse::<i64>().unwrap() as u64);
-            }
-        }
+    let Cli {
+        from: from_str,
+        to: to_str,
+        edges_file,
+        max_hops,
+        max_transfers,
+        mut max_flow,
+        ..
+    } = cli;
+
+    if max_flow.is_none() {
+        max_flow = Some(U256::MAX);
     }
 
     println!("Computing flow {from_str} -> {to_str} using {edges_file}");
-    let edges = (if csv {
-        io::read_edges_csv(edges_file)
-    } else if safes {
-        io::import_from_safes_binary(edges_file).map(|db| db.edges().clone())
+
+    let edges = if cli.csv {
+        io::read_edges_csv(&edges_file)
+    } else if cli.safes {
+        io::import_from_safes_binary(&edges_file).map(|db| db.edges().clone())
     } else {
-        io::read_edges_binary(edges_file)
-    })
+        io::read_edges_binary(&edges_file)
+    }
     .unwrap_or_else(|_| panic!("Error loading edges/safes from file \"{edges_file}\"."));
+
     println!("Read {} edges", edges.edge_count());
     let (flow, transfers) = graph::compute_flow(
         &Address::from(from_str.as_str()),
         &Address::from(to_str.as_str()),
         &edges,
-        max_flow,
+        max_flow.unwrap(),
         max_hops,
         max_transfers,
     );
     println!("Found flow: {}", flow.to_decimal());
-    //println!("{:?}", transfers);
 
     let result = json::object! {
         maxFlowValue: flow.to_decimal(),
@@ -107,6 +110,13 @@ fn main() {
             }
         }).collect::<Vec<_>>()
     };
+
+    let result = if cli.pretty {
+        json::stringify_pretty(result, 2)
+    } else {
+        json::stringify(result)
+    };
+
     println!("{result}");
 
     // let token_owners = transfers
@@ -133,7 +143,7 @@ fn main() {
     //println!("To check, run the following command (requires foundry):");
     //println!("cast call '{HUB_ADDRESS}' '{TRANSFER_THROUGH_SIG}' '[{token_owners}]' '[{froms}]' '[{tos}]' '[{amounts}]' --rpc-url {RPC_URL} --from {}", &transfers[0].from.to_string());
 
-    if let Some(dotfile) = dotfile {
+    if let Some(dotfile) = cli.dotfile {
         File::create(&dotfile)
             .unwrap()
             .write_all(graph::transfers_to_dot(&transfers).as_bytes())
