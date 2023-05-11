@@ -15,7 +15,7 @@ query="""{
 }""".replace('\n', ' ')
 
 #API='https://graph.circles.garden/subgraphs/name/CirclesUBI/circles-subgraph'
-API='https://api.thegraph.com/subgraphs/name/circlesubi/circles'
+API='https://api.thegraph.com/subgraphs/name/circlesubi/circles-ubi'
 
 
 lastID = 0
