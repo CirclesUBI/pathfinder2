@@ -78,7 +78,7 @@ pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
         thread::spawn(move || loop {
             let socket = rec.lock().unwrap().recv().unwrap();
             if let Err(e) = handle_connection(e.deref(), socket) {
-                println!("Error handling connection: {e}");
+                println!("Error handling connection: {}", e);
             }
         });
     }
@@ -94,7 +94,7 @@ pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
                     panic!("Internal communication channel disconnected.");
                 }
             },
-            Err(e) => println!("Error accepting connection: {e}"),
+            Err(e) => println!("Error accepting connection: {}", e),
         }
     }
 }
@@ -109,7 +109,7 @@ fn handle_connection(
             let response = match load_edges_binary(edges, &request.params["file"].to_string()) {
                 Ok(len) => jsonrpc_response(request.id, len),
                 Err(e) => {
-                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {e}"))
+                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {}", e))
                 }
             };
             socket.write_all(response.as_bytes())?;
@@ -118,7 +118,7 @@ fn handle_connection(
             let response = match load_edges_csv(edges, &request.params["file"].to_string()) {
                 Ok(len) => jsonrpc_response(request.id, len),
                 Err(e) => {
-                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {e}"))
+                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {}", e))
                 }
             };
             socket.write_all(response.as_bytes())?;
@@ -127,7 +127,7 @@ fn handle_connection(
             let response = match load_safes_binary(edges, &request.params["file"].to_string()) {
                 Ok(len) => jsonrpc_response(request.id, len),
                 Err(e) => {
-                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {e}"))
+                    jsonrpc_error_response(request.id, -32000, &format!("Error loading edges: {}", e))
                 }
             };
             socket.write_all(response.as_bytes())?;
