@@ -144,7 +144,7 @@ fn handle_connection(
                     Err(e) => jsonrpc_error_response(
                         request.id,
                         -32000,
-                        &format!("Error updating edges: {e}"),
+                        &format!("Error updating edges: {}", e),
                     ),
                 },
                 _ => {
@@ -273,7 +273,7 @@ fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>
             method: method.to_string(),
             params,
         }),
-        _ => Err(From::from("Invalid JSON-RPC request: {request}")),
+        _ => Err(From::from(format!("Invalid JSON-RPC request: {}", request))),
     }
 }
 
