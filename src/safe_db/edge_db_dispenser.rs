@@ -23,17 +23,19 @@ impl EdgeDbDispenser {
     }
 
     pub fn get_latest_version(&self) -> Option<EdgeDBVersion> {
+        println!("Tracing: get_latest_version - Acquiring lock on versions.");
         let counter = self.counter.lock().unwrap();
         let versions = self.versions.lock().unwrap();
 
         if !versions.contains_key(&*counter) {
+            println!("Tracing: get_latest_version - No version found for counter {}.", *counter);
             return None;
         }
 
         let edges = versions.get(&*counter).unwrap().clone();
         drop(versions); // release the lock on versions as soon as we're done with it.
 
-        println!("Tracing: get_latest_version - Acquired lock on versions.");
+        println!("Tracing: get_latest_version - Acquired lock on refs.");
 
         let mut refs = self.refs.lock().unwrap();
         *refs.entry(*counter).or_insert(0) += 1;
@@ -46,6 +48,7 @@ impl EdgeDbDispenser {
     pub fn update(&self, new_edgedb: EdgeDB) {
         let mut counter = self.counter.lock().unwrap();
         let mut versions = self.versions.lock().unwrap();
+
         *counter += 1;
         versions.insert(*counter, Arc::new(new_edgedb));
 
@@ -61,7 +64,10 @@ impl EdgeDbDispenser {
         println!("Tracing: update - Found {} old versions to clean up.", old_versions.len());
 
         for version in old_versions {
-            versions.remove(&version);
+            let mut v = versions.remove(&version);
+            let db = v.take().unwrap();
+            println!("Tracing: update - Take and drop old version {}", version);
+            drop(db);
             println!("Tracing: update - Cleaned up old version {}.", version);
         }
     }
