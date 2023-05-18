@@ -20,51 +20,63 @@ pub fn handle_connection(
         socket: &mut TcpStream,
         id: JsonValue,
         result: Option<T>,
-        error: Option<(i64, &str)>,
+        error: Option<(i64, String)>,
+        call_context: &CallContext,
     ) -> Result<(), Box<dyn Error>> {
-        let response = jsonrpc_response(id, result.map(Into::into), error);
-        socket.write_all(response.as_bytes())?;
+        if let Some((code, message)) = error.as_ref() {
+            call_context.log_message(&format!("Error (code: {}): {}", code, message));
+        }
+        let response_json = jsonrpc_serialize_response(id, result.map(Into::into), error.as_ref().map(|(c, m)| (*c, m.as_str())));
+        let rpc_response = jsonrpc_response(response_json.to_string());
+
+        call_context.log_message(&format!("Result: {:?}", response_json));
+
+        socket.write_all(rpc_response.as_bytes())?;
         Ok(())
     }
 
+
     match request.method.as_str() {
         "load_edges_binary" => {
-            match load_edges_binary(edges,&request.params["file"].to_string(), &call_context) {
-                Ok(len) => respond(&mut socket, request.id, Some(len), None),
-                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
+            match load_edges_binary(edges, &request.params["file"].to_string(), &call_context) {
+                Ok(len) => respond(&mut socket, request.id, Some(len), None, &call_context),
+                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error loading edges: {}", e))), &call_context)
             }?;
         }
         "load_edges_csv" => {
             match load_edges_csv(edges, &request.params["file"].to_string(), &call_context) {
-                Ok(len) => respond(&mut socket, request.id, Some(len), None),
-                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
+                Ok(len) => respond(&mut socket, request.id, Some(len), None, &call_context),
+                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error loading edges: {}", e))), &call_context)
             }?;
         }
         "load_safes_binary" => {
             match load_safes_binary(edges, &request.params["file"].to_string(), &call_context) {
-                Ok(len) => respond(&mut socket, request.id, Some(len), None),
-                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
+                Ok(len) => respond(&mut socket, request.id, Some(len), None, &call_context),
+                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error loading safes: {}", e))), &call_context),
             }?;
         }
         "compute_transfer" => {
             let e = edges.read().unwrap().clone();
-            compute_transfer(&request, e.as_ref(), socket, &call_context)?;
+            match compute_transfer(&request, e.as_ref(), &call_context) {
+                Ok(result) => respond(&mut socket, request.id, Some(result), None, &call_context),
+                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error computing transfer path edges: {}", e))), &call_context),
+            }?;
         }
         "update_edges" => {
             match request.params {
                 JsonValue::Array(updates) => {
                     match update_edges(edges, updates, &call_context) {
-                        Ok(len) => respond(&mut socket, request.id, Some(len), None),
-                        Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
+                        Ok(len) => respond(&mut socket, request.id, Some(len), None, &call_context),
+                        Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error updating edges: {}", e))), &call_context),
                     }?;
                 },
                 _ => {
-                    respond::<JsonValue>(&mut socket, request.id, None, Some((-32602, "Invalid arguments: Expected array.")))?;
+                    respond::<JsonValue>(&mut socket, request.id, None, Some((-32602, "Invalid arguments: Expected array.".to_string())), &call_context)?;
                 }
             }
         }
         _ => {
-            respond::<JsonValue>(&mut socket, request.id, None, Some((-32601, "Method not found")))?;
+            respond::<JsonValue>(&mut socket, request.id, None, Some((-32601, "Method not found".to_string())), &call_context)?;
         }
     };
 
@@ -106,26 +118,26 @@ fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>
     }
 }
 
-fn jsonrpc_response(id: JsonValue, result: impl Into<JsonValue>, error: Option<(i64, &str)>) -> String {
-    let payload = match error {
-        Some((code, message)) => json::object! {
-            jsonrpc: "2.0",
-            id: id,
-            error: {
-                code: code,
-                message: message
-            }
-        },
-        None => json::object! {
-            jsonrpc: "2.0",
-            id: id,
-            result: result.into(),
-        },
-    }.dump();
+fn jsonrpc_serialize_response(id: JsonValue, result: impl Into<JsonValue>, error: Option<(i64, &str)>) -> String {
+    let mut response = json::object! {
+        jsonrpc: "2.0",
+        id: id,
+    };
+    if let Some((code, message)) = error {
+        response.insert("error", json::object! {
+            code: code,
+            message: message,
+        }).unwrap();
+    } else {
+        response.insert("result", result.into()).unwrap();
+    }
+    response.dump()
+}
 
+fn jsonrpc_response(json_payload:String) -> String {
     format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
-        payload.len(),
-        payload
+        json_payload.len(),
+        json_payload
     )
 }

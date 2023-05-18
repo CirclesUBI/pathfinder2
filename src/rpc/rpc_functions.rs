@@ -1,7 +1,5 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::io::Write;
-use std::net::TcpStream;
 use std::str::FromStr;
 use std::sync::{Arc, RwLock};
 use json::JsonValue;
@@ -59,10 +57,8 @@ pub fn load_safes_binary(edges: &RwLock<Arc<EdgeDB>>, file: &str, call_context: 
 pub fn compute_transfer(
     request: &JsonRpcRequest,
     edges: &EdgeDB,
-    mut socket: TcpStream,
     call_context: &CallContext
-) -> Result<(), Box<dyn Error>> {
-    socket.write_all(chunked_header().as_bytes())?;
+) -> Result<JsonValue, Box<dyn Error>> {
 
     call_context.log_message(format!("{}", request.params).as_str());
 
@@ -81,6 +77,7 @@ pub fn compute_transfer(
     };
 
     let max_transfers = request.params["max_transfers"].as_u64();
+
     for max_distance in max_distances {
         let (flow, transfers) = graph::compute_flow(
             &from_address,
@@ -94,9 +91,8 @@ pub fn compute_transfer(
 
         call_context.log_message(&format!("Computed flow with max distance {:?}: {}", max_distance, flow));
 
-        let json_rpc_result = jsonrpc_result(
-            request.id.clone(),
-            json::object! {
+        // TODO: This implementation doesn't support the iterative approach anymore. Re-implement it.
+        return Ok(json::object! {
                         maxFlowValue: flow.to_decimal(),
                         final: max_distance.is_none(),
                         transferSteps: transfers.into_iter().map(|e| json::object! {
@@ -105,15 +101,13 @@ pub fn compute_transfer(
                             token_owner: e.token.to_checksummed_hex(),
                             value: e.capacity.to_decimal(),
                         }).collect::<Vec<_>>(),
-                    },
-        );
-
-        call_context.log_message(&format!("Sending response: {}", json_rpc_result));
-
-        socket.write_all(chunked_response(&(json_rpc_result + "\r\n")).as_bytes())?;
+                    });
     }
-    socket.write_all(chunked_close().as_bytes())?;
-    Ok(())
+
+    Err(Box::new(InputValidationError(format!(
+        "Couldn't find a path for {} CRC between {} -> {}.",
+        parsed_value_param, from_address, to_address
+    ))))
 }
 
 pub fn update_edges(
@@ -143,31 +137,6 @@ pub fn update_edges(
     /* TODO: When under high read load by compute_transfer, this update mechanism could suffer from write starvation */
     *edges.write().unwrap() = Arc::new(updating_edges);
     Ok(len)
-}
-
-fn chunked_header() -> String {
-    "HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n".to_string()
-}
-
-fn chunked_response(data: &str) -> String {
-    if data.is_empty() {
-        String::new()
-    } else {
-        format!("{:x}\r\n{}\r\n", data.len(), data)
-    }
-}
-
-fn chunked_close() -> String {
-    "0\r\n\r\n".to_string()
-}
-
-fn jsonrpc_result(id: JsonValue, result: impl Into<JsonValue>) -> String {
-    json::object! {
-        jsonrpc: "2.0",
-        id: id,
-        result: result.into(),
-    }
-    .dump()
 }
 
 fn validate_and_parse_u256(value_str: &str) -> Result<U256, Box<dyn Error>> {
