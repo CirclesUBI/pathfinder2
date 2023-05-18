@@ -61,8 +61,12 @@ impl CallContext {
 impl Drop for CallContext {
     fn drop(&mut self) {
         let version_number = self.version.as_ref().map(|v| v.version_number).unwrap_or(0);
+
         if let Some(version) = self.version.take() {
+            println!("Tracing: CallContext::drop - Releasing version {}.", version_number);
             self.dispenser.try_release_version(version);
+        } else {
+            println!("Tracing: CallContext::drop - No version to release.");
         }
 
         if self.client_ip.is_empty() && self.request_id.is_null() && self.rpc_function.is_empty() {

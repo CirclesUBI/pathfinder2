@@ -33,8 +33,12 @@ impl EdgeDbDispenser {
         let edges = versions.get(&*counter).unwrap().clone();
         drop(versions); // release the lock on versions as soon as we're done with it.
 
+        println!("Tracing: get_latest_version - Acquired lock on versions.");
+
         let mut refs = self.refs.lock().unwrap();
         *refs.entry(*counter).or_insert(0) += 1;
+
+        println!("Tracing: get_latest_version - Increased reference count for version {}.", *counter);
 
         Some(EdgeDBVersion { version_number: *counter, edges })
     }
@@ -45,6 +49,8 @@ impl EdgeDbDispenser {
         *counter += 1;
         versions.insert(*counter, Arc::new(new_edgedb));
 
+        println!("Tracing: update - Updated version counter to {}.", *counter);
+
         // Clean up any version that has no reference and is not the latest one.
         let old_versions: Vec<u64> = versions
             .keys()
@@ -52,8 +58,11 @@ impl EdgeDbDispenser {
             .cloned()
             .collect();
 
+        println!("Tracing: update - Found {} old versions to clean up.", old_versions.len());
+
         for version in old_versions {
             versions.remove(&version);
+            println!("Tracing: update - Cleaned up old version {}.", version);
         }
     }
 
@@ -65,11 +74,15 @@ impl EdgeDbDispenser {
                 *count -= 1;
                 if *count == 0 {
                     refs.remove(&version.version_number);
+                    println!("Tracing: try_release_version - Removed version {} from refs.", version.version_number);
                 }
             }
             _ => {
                 println!("Error: version {} not found in refs.", version.version_number);
             }
         }
+
+        println!("Tracing: total refs: {}.", refs.len());
+        println!("Total versions: {}.", self.versions.lock().unwrap().len());
     }
 }
