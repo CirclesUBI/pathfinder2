@@ -88,6 +88,8 @@ impl EdgeDbDispenser {
             }
         }
 
+        drop(version.edges);
+
         println!("Tracing: total refs: {}.", refs.len());
         println!("Total versions: {}.", self.versions.lock().unwrap().len());
     }

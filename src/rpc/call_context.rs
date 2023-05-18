@@ -26,6 +26,11 @@ impl CallContext {
             version: version,
         };
 
+        println!(
+            "Tracing [call_context.rs]::new(): dispenser: Strong count: {}, Weak count: {}",
+            Arc::strong_count(&dispenser),
+            Arc::weak_count(&dispenser)
+        );
         context.log("->", None, None);
         context
     }
