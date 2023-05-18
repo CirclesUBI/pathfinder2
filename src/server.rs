@@ -8,6 +8,8 @@ use std::thread;
 use crate::rpc::rpc_handler::handle_connection;
 
 pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
+    println!("Starting pathfinder. Listening at {} with {} threads and queue size {}.", listen_at, threads, queue_size);
+
     let edges: Arc<RwLock<Arc<EdgeDB>>> = Arc::new(RwLock::new(Arc::new(EdgeDB::default())));
 
     let (sender, receiver) = mpsc::sync_channel(queue_size);
@@ -15,12 +17,13 @@ pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
     for _ in 0..threads {
         let rec = protected_receiver.clone();
         let e = edges.clone();
-        thread::spawn(move || loop {
+        let t = thread::spawn(move || loop {
             let socket = rec.lock().unwrap().recv().unwrap();
             if let Err(e) = handle_connection(e.deref(), socket) {
                 println!("Error handling connection: {}", e);
             }
         });
+        println!("Spawned thread: {:?}.", t.thread().id());
     }
     let listener = TcpListener::bind(listen_at).expect("Could not create server.");
     loop {
