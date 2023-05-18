@@ -3,6 +3,7 @@ use pathfinder2::io::import_from_safes_binary;
 use pathfinder2::types::edge::EdgeDB;
 use pathfinder2::types::{Address, U256};
 use std::process::Command;
+use pathfinder2::rpc::call_context::CallContext;
 
 const HUB_ADDRESS: &str = "0x29b9a7fBb8995b2423a71cC17cf9810798F6C543";
 const TRANSFER_THROUGH_SIG: &str = "transferThrough(address[],address[],address[],uint256[])";
@@ -35,7 +36,7 @@ fn test_flow_large() {
 }
 
 fn read_edges() -> EdgeDB {
-    import_from_safes_binary("capacity_graph.db")
+    import_from_safes_binary("capacity_graph.db", &CallContext::default())
         .unwrap()
         .edges()
         .clone()
@@ -48,7 +49,7 @@ fn test_flow(
     requested_flow: U256,
     max_distance: Option<u64>,
 ) {
-    let transfers = compute_flow(source, sink, edges, requested_flow, max_distance, None);
+    let transfers = compute_flow(source, sink, edges, requested_flow, max_distance, None, &CallContext::default());
     println!("{transfers:?}");
 
     let token_owners = transfers

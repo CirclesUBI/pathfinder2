@@ -2,21 +2,19 @@ use std::error::Error;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
 use std::sync::{Arc, RwLock};
-use std::time::SystemTime;
 use json::JsonValue;
+use crate::rpc::call_context::CallContext;
+use crate::rpc::rpc_functions::{compute_transfer, JsonRpcRequest, load_edges_binary, load_edges_csv, load_safes_binary, update_edges};
 use crate::types::edge::EdgeDB;
-use crate::rpc_functions::{load_edges_binary, load_edges_csv, load_safes_binary, compute_transfer, update_edges, JsonRpcRequest};
 
 pub fn handle_connection(
     edges: &RwLock<Arc<EdgeDB>>,
     mut socket: TcpStream,
 ) -> Result<(), Box<dyn Error>> {
-    let start_time = std::time::Instant::now();
     let request = read_request(&mut socket)?;
-    let request_id = request.id.clone();
     let client_ip = socket.peer_addr()?.to_string();
 
-    println!("{}", log_rpc_call(&client_ip, &request.id, &request.method, None));
+    let call_context = CallContext::new(&client_ip, &request.id, &request.method);
 
     fn respond<T: Into<JsonValue>>(
         socket: &mut TcpStream,
@@ -31,32 +29,31 @@ pub fn handle_connection(
 
     match request.method.as_str() {
         "load_edges_binary" => {
-            match load_edges_binary(edges, &request.params["file"].to_string()) {
+            match load_edges_binary(edges,&request.params["file"].to_string(), &call_context) {
                 Ok(len) => respond(&mut socket, request.id, Some(len), None),
                 Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
             }?;
         }
         "load_edges_csv" => {
-            match load_edges_csv(edges, &request.params["file"].to_string()) {
+            match load_edges_csv(edges, &request.params["file"].to_string(), &call_context) {
                 Ok(len) => respond(&mut socket, request.id, Some(len), None),
                 Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
             }?;
         }
         "load_safes_binary" => {
-            match load_safes_binary(edges, &request.params["file"].to_string()) {
+            match load_safes_binary(edges, &request.params["file"].to_string(), &call_context) {
                 Ok(len) => respond(&mut socket, request.id, Some(len), None),
                 Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
             }?;
         }
         "compute_transfer" => {
-            println!("Computing flow");
             let e = edges.read().unwrap().clone();
-            compute_transfer(&request, e.as_ref(), socket)?; // Pass a reference to request
+            compute_transfer(&request, e.as_ref(), socket, &call_context)?;
         }
         "update_edges" => {
             match request.params {
                 JsonValue::Array(updates) => {
-                    match update_edges(edges, updates) {
+                    match update_edges(edges, updates, &call_context) {
                         Ok(len) => respond(&mut socket, request.id, Some(len), None),
                         Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, &format!("Error loading edges: {}", e)))),
                     }?;
@@ -70,9 +67,6 @@ pub fn handle_connection(
             respond::<JsonValue>(&mut socket, request.id, None, Some((-32601, "Method not found")))?;
         }
     };
-
-    let call_duration = start_time.elapsed().as_millis();
-    println!("{}", log_rpc_call(&client_ip, &request_id, &request.method, Some(call_duration)));
 
     Ok(())
 }
@@ -100,7 +94,6 @@ fn read_payload(socket: &mut TcpStream) -> Result<Vec<u8>, Box<dyn Error>> {
 fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>> {
     let payload = read_payload(socket)?;
     let mut request = json::parse(&String::from_utf8(payload)?)?;
-    println!("Request: {request}");
     let id = request["id"].take();
     let params = request["params"].take();
     match request["method"].as_str() {
@@ -110,24 +103,6 @@ fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>
             params,
         }),
         _ => Err(From::from(format!("Invalid JSON-RPC request: {}", request))),
-    }
-}
-
-fn log_rpc_call(client_ip: &str, request_id: &JsonValue, rpc_function: &str, call_duration: Option<u128>) -> String {
-    let timestamp = SystemTime::now()
-        .duration_since(SystemTime::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
-
-    match call_duration {
-        Some(duration) => format!(
-            "<- {} [{}] [{}] [{}] took {} ms",
-            timestamp, client_ip, request_id, rpc_function, duration
-        ),
-        None => format!(
-            "-> {} [{}] [{}] [{}]",
-            timestamp, client_ip, request_id, rpc_function
-        ),
     }
 }
 

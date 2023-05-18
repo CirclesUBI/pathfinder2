@@ -1,6 +1,7 @@
 use std::env;
 
 use pathfinder2::io::*;
+use pathfinder2::rpc::call_context::CallContext;
 use pathfinder2::safe_db::safes_json::import_from_safes_json;
 
 fn main() {
@@ -41,7 +42,7 @@ fn main() {
             safes.edges().clone()
         }
         "--safes-bin" => {
-            let safes = import_from_safes_binary(&input_file).unwrap();
+            let safes = import_from_safes_binary(&input_file, &CallContext::default()).unwrap();
             safes.edges().clone()
         }
         "--edges-csv" => read_edges_csv(&input_file).unwrap(),

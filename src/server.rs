@@ -5,7 +5,7 @@ use std::ops::Deref;
 use std::sync::mpsc::TrySendError;
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread;
-use crate::rpc_handler::handle_connection;
+use crate::rpc::rpc_handler::handle_connection;
 
 pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
     let edges: Arc<RwLock<Arc<EdgeDB>>> = Arc::new(RwLock::new(Arc::new(EdgeDB::default())));

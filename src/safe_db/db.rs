@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use crate::rpc::call_context::CallContext;
 
 use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
@@ -10,8 +11,11 @@ pub struct DB {
 }
 
 impl DB {
-    pub fn new(safes: BTreeMap<Address, Safe>, token_owner: BTreeMap<Address, Address>) -> DB {
-        println!("{} safes, {} tokens", safes.len(), token_owner.len());
+    pub fn new(safes: BTreeMap<Address, Safe>, token_owner: BTreeMap<Address, Address>, call_context: Option<&CallContext>) -> DB {
+        let default_call_context = CallContext::default();
+        let call_context = call_context.unwrap_or(&default_call_context);
+        call_context.log_message(&format!("{} safes, {} tokens", safes.len(), token_owner.len()));
+
         let mut db = DB {
             safes,
             token_owner,

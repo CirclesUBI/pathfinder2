@@ -3,6 +3,7 @@ use std::fs::File;
 use std::io::{self, BufRead};
 use std::io::{Read, Write};
 use std::{collections::HashMap, io::BufReader};
+use crate::rpc::call_context::CallContext;
 
 use crate::safe_db::db::DB;
 use crate::types::edge::EdgeDB;
@@ -66,7 +67,7 @@ pub fn write_edges_csv(edges: &EdgeDB, path: &String) -> Result<(), io::Error> {
     Ok(())
 }
 
-pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
+pub fn import_from_safes_binary(path: &str, call_context: &CallContext) -> Result<DB, io::Error> {
     let mut f = File::open(path)?;
 
     let mut safes: BTreeMap<Address, Safe> = Default::default();
@@ -120,7 +121,7 @@ pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
         token_owner.insert(*addr, *addr);
     }
 
-    Ok(DB::new(safes, token_owner))
+    Ok(DB::new(safes, token_owner, Some(call_context)))
 }
 
 pub fn export_safes_to_binary(db: &DB, path: &str) -> Result<(), io::Error> {

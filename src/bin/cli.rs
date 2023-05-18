@@ -4,6 +4,7 @@ use std::io::Write;
 
 use pathfinder2::graph;
 use pathfinder2::io;
+use pathfinder2::rpc::call_context::CallContext;
 use pathfinder2::types::Address;
 use pathfinder2::types::U256;
 
@@ -78,7 +79,7 @@ fn main() {
     let edges = (if csv {
         io::read_edges_csv(edges_file)
     } else if safes {
-        io::import_from_safes_binary(edges_file).map(|db| db.edges().clone())
+        io::import_from_safes_binary(edges_file, &CallContext::default()).map(|db| db.edges().clone())
     } else {
         io::read_edges_binary(edges_file)
     })
@@ -91,6 +92,7 @@ fn main() {
         max_flow,
         max_hops,
         max_transfers,
+        &CallContext::default()
     );
     println!("Found flow: {}", flow.to_decimal());
     //println!("{:?}", transfers);

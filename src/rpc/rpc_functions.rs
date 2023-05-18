@@ -11,6 +11,7 @@ use crate::io::{import_from_safes_binary, read_edges_binary, read_edges_csv};
 use crate::types::{Address, Edge, U256};
 use crate::types::edge::EdgeDB;
 use regex::Regex;
+use crate::rpc::call_context::CallContext;
 
 pub struct JsonRpcRequest {
     pub id: JsonValue,
@@ -31,23 +32,26 @@ impl Display for InputValidationError {
     }
 }
 
-pub fn load_edges_binary(edges: &RwLock<Arc<EdgeDB>>, file: &String) -> Result<usize, Box<dyn Error>> {
+pub fn load_edges_binary(edges: &RwLock<Arc<EdgeDB>>, file: &String, _: &CallContext) -> Result<usize, Box<dyn Error>> {
     let updated_edges = read_edges_binary(file)?;
     let len = updated_edges.edge_count();
+    /* TODO: When under high read load by compute_transfer, this update mechanism could suffer from write starvation */
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
 }
 
-pub fn load_edges_csv(edges: &RwLock<Arc<EdgeDB>>, file: &String) -> Result<usize, Box<dyn Error>> {
+pub fn load_edges_csv(edges: &RwLock<Arc<EdgeDB>>, file: &String, _: &CallContext) -> Result<usize, Box<dyn Error>> {
     let updated_edges = read_edges_csv(file)?;
     let len = updated_edges.edge_count();
+    /* TODO: When under high read load by compute_transfer, this update mechanism could suffer from write starvation */
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
 }
 
-pub fn load_safes_binary(edges: &RwLock<Arc<EdgeDB>>, file: &str) -> Result<usize, Box<dyn Error>> {
-    let updated_edges = import_from_safes_binary(file)?.edges().clone();
+pub fn load_safes_binary(edges: &RwLock<Arc<EdgeDB>>, file: &str, call_context: &CallContext) -> Result<usize, Box<dyn Error>> {
+    let updated_edges = import_from_safes_binary(file, call_context)?.edges().clone();
     let len = updated_edges.edge_count();
+    /* TODO: When under high read load by compute_transfer, this update mechanism could suffer from write starvation */
     *edges.write().unwrap() = Arc::new(updated_edges);
     Ok(len)
 }
@@ -56,8 +60,11 @@ pub fn compute_transfer(
     request: &JsonRpcRequest,
     edges: &EdgeDB,
     mut socket: TcpStream,
+    call_context: &CallContext
 ) -> Result<(), Box<dyn Error>> {
     socket.write_all(chunked_header().as_bytes())?;
+
+    call_context.log_message(format!("{}", request.params).as_str());
 
     let parsed_value_param = match request.params["value"].as_str() {
         Some(value_str) => validate_and_parse_u256(value_str)?,
@@ -82,13 +89,14 @@ pub fn compute_transfer(
             parsed_value_param,
             max_distance,
             max_transfers,
+            call_context
         );
-        println!("Computed flow with max distance {max_distance:?}: {flow}");
-        socket.write_all(
-            chunked_response(
-                &(jsonrpc_result(
-                    request.id.clone(),
-                    json::object! {
+
+        call_context.log_message(&format!("Computed flow with max distance {:?}: {}", max_distance, flow));
+
+        let json_rpc_result = jsonrpc_result(
+            request.id.clone(),
+            json::object! {
                         maxFlowValue: flow.to_decimal(),
                         final: max_distance.is_none(),
                         transferSteps: transfers.into_iter().map(|e| json::object! {
@@ -98,10 +106,11 @@ pub fn compute_transfer(
                             value: e.capacity.to_decimal(),
                         }).collect::<Vec<_>>(),
                     },
-                ) + "\r\n"),
-            )
-                .as_bytes(),
-        )?;
+        );
+
+        call_context.log_message(&format!("Sending response: {}", json_rpc_result));
+
+        socket.write_all(chunked_response(&(json_rpc_result + "\r\n")).as_bytes())?;
     }
     socket.write_all(chunked_close().as_bytes())?;
     Ok(())
@@ -110,6 +119,7 @@ pub fn compute_transfer(
 pub fn update_edges(
     edges: &RwLock<Arc<EdgeDB>>,
     updates: Vec<JsonValue>,
+    _: &CallContext
 ) -> Result<usize, Box<dyn Error>> {
     let updates = updates
         .into_iter()
@@ -120,6 +130,7 @@ pub fn update_edges(
             capacity: U256::from(e["capacity"].to_string().as_str()),
         })
         .collect::<Vec<_>>();
+
     if updates.is_empty() {
         return Ok(edges.read().unwrap().edge_count());
     }
@@ -129,6 +140,7 @@ pub fn update_edges(
         updating_edges.update(update);
     }
     let len = updating_edges.edge_count();
+    /* TODO: When under high read load by compute_transfer, this update mechanism could suffer from write starvation */
     *edges.write().unwrap() = Arc::new(updating_edges);
     Ok(len)
 }

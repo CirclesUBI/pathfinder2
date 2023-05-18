@@ -6,6 +6,7 @@ use std::cmp::min;
 use std::collections::{BTreeMap, HashSet};
 use std::collections::{HashMap, VecDeque};
 use std::fmt::Write;
+use crate::rpc::call_context::CallContext;
 
 pub fn compute_flow(
     source: &Address,
@@ -14,6 +15,7 @@ pub fn compute_flow(
     requested_flow: U256,
     max_distance: Option<u64>,
     max_transfers: Option<u64>,
+    call_context: &CallContext,
 ) -> (U256, Vec<Edge>) {
     let mut adjacencies = Adjacencies::new(edges);
     let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
@@ -53,7 +55,7 @@ pub fn compute_flow(
         !out.is_empty()
     });
 
-    println!("Max flow: {}", flow.to_decimal());
+    call_context.log_message(format!("Max flow: {}", flow.to_decimal()).as_str());
 
     if flow > requested_flow {
         let still_to_prune = prune_flow(source, sink, flow - requested_flow, &mut used_edges);
@@ -62,10 +64,9 @@ pub fn compute_flow(
 
     if let Some(max_transfers) = max_transfers {
         let lost = reduce_transfers(max_transfers * 3, &mut used_edges);
-        println!(
-            "Capacity lost by transfer count reduction: {}",
+        call_context.log_message(format!("Capacity lost by transfer count reduction: {}",
             lost.to_decimal_fraction()
-        );
+        ).as_str());
         flow -= lost;
     }
 
@@ -74,9 +75,9 @@ pub fn compute_flow(
     } else {
         extract_transfers(source, sink, &flow, used_edges)
     };
-    println!("Num transfers: {}", transfers.len());
+    call_context.log_message(format!("Num transfers: {}", transfers.len()).as_str());
     let simplified_transfers = simplify_transfers(transfers);
-    println!("After simplification: {}", simplified_transfers.len());
+    call_context.log_message(format!("After simplification: {}", simplified_transfers.len()).as_str());
     let sorted_transfers = sort_transfers(simplified_transfers);
     (flow, sorted_transfers)
 }
@@ -567,7 +568,7 @@ mod test {
             token: t,
             capacity: U256::from(10),
         }]);
-        let flow = compute_flow(&a, &b, &edges, U256::MAX, None, None);
+        let flow = compute_flow(&a, &b, &edges, U256::MAX, None, None, &CallContext::default());
         assert_eq!(
             flow,
             (
@@ -599,7 +600,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let flow = compute_flow(&a, &c, &edges, U256::MAX, None, None);
+        let flow = compute_flow(&a, &c, &edges, U256::MAX, None, None, &CallContext::default());
         assert_eq!(
             flow,
             (
@@ -651,7 +652,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None);
+        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None, &CallContext::default());
         flow.1.sort();
         assert_eq!(
             flow,
@@ -685,7 +686,7 @@ mod test {
                 ]
             )
         );
-        let mut pruned_flow = compute_flow(&a, &d, &edges, U256::from(6), None, None);
+        let mut pruned_flow = compute_flow(&a, &d, &edges, U256::from(6), None, None, &CallContext::default());
         pruned_flow.1.sort();
         assert_eq!(
             pruned_flow,
@@ -743,7 +744,7 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None);
+        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None, &CallContext::default());
         flow.1.sort();
         println!("{:?}", &flow.1);
         assert_eq!(flow.0, U256::from(9));

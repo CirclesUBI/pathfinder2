@@ -50,7 +50,7 @@ pub fn import_from_safes_json(file: &str) -> DB {
             }
         }
     }
-    DB::new(safes, token_owner)
+    return DB::new(safes, token_owner, None);
 }
 
 #[derive(Deserialize, Debug)]
