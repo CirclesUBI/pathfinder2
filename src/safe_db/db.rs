@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
-#[derive(Default, Debug)]
+#[derive(Debug)]
 pub struct DB {
     safes: BTreeMap<Address, Safe>,
     token_owner: BTreeMap<Address, Address>,
@@ -14,7 +14,7 @@ impl DB {
         let mut db = DB {
             safes,
             token_owner,
-            ..Default::default()
+            edges: EdgeDB::new(vec![]),
         };
         db.compute_edges();
         db
@@ -37,8 +37,6 @@ impl DB {
                     continue;
                 }
                 if let Some(receiver_safe) = self.safes.get(send_to) {
-                    // TODO should return "limited or not"
-                    // edge should contain token balance and transfer limit (which can be unlimited)
                     let limit = safe.trust_transfer_limit(receiver_safe, *percentage);
                     if limit != U256::from(0) {
                         edges.push(Edge {
@@ -58,7 +56,6 @@ impl DB {
                             from: *user,
                             to: *owner,
                             token: *owner,
-                            // TODO capacity should be only limited by own balance.
                             capacity: *balance,
                         })
                     }
@@ -66,5 +63,10 @@ impl DB {
             }
         }
         self.edges = EdgeDB::new(edges)
+    }
+}
+
+impl Drop for DB {
+    fn drop(&mut self) {
     }
 }

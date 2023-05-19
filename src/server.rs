@@ -29,13 +29,7 @@ pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
     loop {
         match listener.accept() {
             Ok((socket, _)) => match sender.try_send(socket) {
-                Ok(()) => {
-                    println!(
-                        "Tracing [server.rs]: edge_db_dispenser: Strong count: {}, Weak count: {}",
-                        Arc::strong_count(&edge_db_dispenser),
-                        Arc::weak_count(&edge_db_dispenser)
-                    );
-                }
+                Ok(()) => {}
                 Err(TrySendError::Full(mut socket)) => {
                     let _ = socket.write_all(b"HTTP/1.1 503 Service Unavailable\r\n\r\n");
                 }
