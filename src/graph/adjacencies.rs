@@ -10,10 +10,6 @@ pub struct Adjacencies<'a> {
     capacity_adjustments: HashMap<Node, HashMap<Node, U256>>,
 }
 
-// fn pseudo_node(edge: Edge) -> Node {
-//     Node::TokenEdge(edge.from, edge.token)
-// }
-
 fn balance_node(edge: &Edge) -> Node {
     Node::BalanceNode(edge.from, edge.token)
 }
@@ -21,13 +17,6 @@ fn balance_node(edge: &Edge) -> Node {
 fn trust_node(edge: &Edge) -> Node {
     Node::TrustNode(edge.to, edge.token)
 }
-
-// fn source_address_of(node: &Node) -> &Address {
-//     match node {
-//         Node::Node(addr) => addr,
-//         Node::TokenEdge(from, _) => from,
-//     }
-// }
 
 impl<'a> Adjacencies<'a> {
     pub fn new(edges: &'a EdgeDB) -> Self {

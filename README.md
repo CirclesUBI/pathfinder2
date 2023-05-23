@@ -95,3 +95,35 @@ Example:
 `cargo run --bin convert --safes-json safes.json --edges-bin edges.dat`
 
 Converts a safe json file called `safes.json` into a binary edge database file called `edges.dat`.
+
+
+```shell
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "1",
+    "method": "load_safes_binary",
+    "params": {
+        "file": "/home/daniel/src/CirclesUBI/pathfinder2/graph_at_20230523_15_00.db"
+    }
+}' \
+  "http://localhost:1234"
+  
+  
+  
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "1",
+    "method": "compute_transfer",
+    "params": {
+        "from": "0xde374ece6fa50e781e81aac78e811b33d16912c7",
+        "to": "0x6de572faa138048ce8142c4a206eb09a8ec39e45",
+        "value": "9999999999999999999999999",
+        "iterative": false,
+        "prune": true
+    }
+}' \
+  "http://localhost:1234"
+
+```

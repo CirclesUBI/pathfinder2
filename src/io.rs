@@ -1,10 +1,10 @@
-use std::fs::File;
-use std::io::{self, Cursor};
-use std::io::{Read};
-use std::{collections::HashMap};
-use std::collections::BTreeMap;
 use crate::safe_db::db::DB;
 use crate::types::{Address, Safe, U256};
+use std::collections::BTreeMap;
+use std::collections::HashMap;
+use std::fs::File;
+use std::io::Read;
+use std::io::{self};
 
 pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
     let mut f = File::open(path)?;
@@ -44,61 +44,6 @@ pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
         let token_owner = read_address(&mut f, &address_index)?;
         assert!(token_owner != Address::default());
         let balance = read_u256(&mut f)?;
-        if balance != U256::from(0) {
-            safes
-                .entry(user)
-                .or_default()
-                .balances
-                .insert(token_owner, balance);
-        }
-    }
-
-    // we use the safe address as token address
-    let mut token_owner = BTreeMap::default();
-    for (addr, safe) in &mut safes {
-        safe.token_address = *addr;
-        token_owner.insert(*addr, *addr);
-    }
-
-    Ok(DB::new(safes, token_owner))
-}
-
-pub fn import_from_safes_binary_from_cursor(cursor: &mut Cursor<Vec<u8>>) -> Result<DB, io::Error> {
-    let mut safes: BTreeMap<Address, Safe> = Default::default();
-
-    let address_index = read_address_index(cursor)?;
-
-    // organizations
-    for _ in 0..read_u32(cursor)? {
-        let org_address = read_address(cursor, &address_index)?;
-        safes.entry(org_address).or_default().organization = true;
-    }
-
-    // trust edges
-    for _ in 0..read_u32(cursor)? {
-        let user = read_address(cursor, &address_index)?;
-        assert!(user != Address::default());
-        let send_to = read_address(cursor, &address_index)?;
-        assert!(send_to != Address::default());
-        let limit_percentage = read_u8(cursor)?;
-        assert!(limit_percentage <= 100);
-
-        if send_to != user && limit_percentage > 0 {
-            safes
-                .entry(user)
-                .or_default()
-                .limit_percentage
-                .insert(send_to, limit_percentage);
-        }
-    }
-
-    // balances
-    for _ in 0..read_u32(cursor)? {
-        let user = read_address(cursor, &address_index)?;
-        assert!(user != Address::default());
-        let token_owner = read_address(cursor, &address_index)?;
-        assert!(token_owner != Address::default());
-        let balance = read_u256(cursor)?;
         if balance != U256::from(0) {
             safes
                 .entry(user)

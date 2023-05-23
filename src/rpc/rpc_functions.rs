@@ -5,11 +5,10 @@ use std::str::FromStr;
 use json::JsonValue;
 use num_bigint::BigUint;
 use crate::graph;
-use crate::io::{import_from_safes_binary, import_from_safes_binary_from_cursor};
+use crate::io::{import_from_safes_binary};
 use crate::types::{Address, U256};
 use regex::Regex;
 use crate::rpc::call_context::CallContext;
-use base64;
 
 pub struct JsonRpcRequest {
     pub id: JsonValue,
@@ -35,15 +34,6 @@ impl Display for InputValidationError {
 
 pub fn load_safes_binary(file: &str, call_context: &CallContext) -> Result<usize, Box<dyn Error>> {
     let updated_edges = import_from_safes_binary(file)?.edges().clone();
-    let len = updated_edges.edge_count();
-    call_context.dispenser.update(updated_edges);
-    Ok(len)
-}
-
-pub fn push_safes_binary(encoded_data: &str, call_context: &CallContext) -> Result<usize, Box<dyn Error>> {
-    let decoded = base64::decode(encoded_data)?;
-    let mut cursor = Cursor::new(decoded);
-    let updated_edges = import_from_safes_binary_from_cursor(&mut cursor)?.edges().clone();
     let len = updated_edges.edge_count();
     call_context.dispenser.update(updated_edges);
     Ok(len)
