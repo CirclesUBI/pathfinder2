@@ -29,6 +29,43 @@ Number of worker threads: 4
 
 Size of request queue: 10
 
+#### Run with test data
+1) Download the balances and trust binary dump from [binary dump from 2023-05-23](graph_at_20230523_15_00.db)
+2) Start the server with `cargo run --release <ip-address>:<port>`
+3) Import the data with the curl command below
+4) Query the server with the curl command below
+
+The data can be imported into a running pathfinder2 server with the following command:
+```shell
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "timestamp_value",
+    "method": "load_safes_binary",
+    "params": {
+        "file": "/path/to/graph_at_20230523_15_00.db"
+    }
+}' \
+  "http://<ip>:<port>"
+```
+afterward the server can be queried with the following command:
+```shell
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "timestamp_value",
+    "method": "compute_transfer",
+    "params": {
+        "from": "0x000...",
+        "to": "0x000...",
+        "value": 999999999999,
+        "iterative": false,
+        "prune": true
+    }
+}' \
+  "http://<ip>:<port>"
+```
+
 ### Using the CLI
 
 The CLI will load an edge database file and compute the transitive transfers from one source to one destination. You can limit the number of hops to explore and the maximum amount of circles to transfer.
