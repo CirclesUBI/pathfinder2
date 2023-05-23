@@ -53,11 +53,15 @@ afterward the server can be queried with the following command:
 curl -X POST \
   -H "Content-Type: application/json" \
   -d '{
-    "from": "0x000...",
-    "to": "0x000...",
-    "value": 999999999999,
-    "iterative": false,
-    "prune": true
+    "id": "timestamp_value",
+    "method": "compute_transfer",
+    "params": {
+        "from": "0x000...",
+        "to": "0x000...",
+        "value": 999999999999,
+        "iterative": false,
+        "prune": true
+    }
 }' \
   "http://<ip>:<port>"
 ```
