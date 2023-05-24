@@ -7,11 +7,6 @@ pub struct EdgeDBVersion {
     pub edges: Arc<EdgeDB>,
 }
 
-impl Drop for EdgeDBVersion {
-    fn drop(&mut self) {
-    }
-}
-
 pub struct EdgeDbDispenser {
     versions: Mutex<HashMap<u64, Arc<EdgeDB>>>,
     counter: Mutex<u64>,
