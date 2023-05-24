@@ -3,6 +3,10 @@ use std::fmt::{Display, Formatter};
 
 mod adjacencies;
 mod flow;
+mod prune;
+mod test;
+mod augmenting_path;
+mod extract_transfers;
 
 // An edge from the capacity network is
 // from, token, to -> capacity
@@ -52,4 +56,3 @@ impl Display for Node {
 }
 
 pub use crate::graph::flow::compute_flow;
-pub use crate::graph::flow::transfers_to_dot;
