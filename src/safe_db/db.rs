@@ -65,8 +65,3 @@ impl DB {
         self.edges = EdgeDB::new(edges)
     }
 }
-
-impl Drop for DB {
-    fn drop(&mut self) {
-    }
-}

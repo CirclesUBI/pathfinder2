@@ -109,6 +109,17 @@ curl -X POST \
 }' \
   "http://localhost:1234"
   
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "1",
+    "method": "load_safes_binary",
+    "params": {
+        "file": "/var/pathfinder2/data/graph_at_20230523_15_00.db"
+    }
+}' \
+  "http://65.109.109.165:54390"
+  
   
   
 curl -X POST \

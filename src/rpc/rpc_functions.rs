@@ -1,6 +1,5 @@
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
-use std::io::Cursor;
 use std::str::FromStr;
 use json::JsonValue;
 use num_bigint::BigUint;
