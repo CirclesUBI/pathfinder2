@@ -24,7 +24,7 @@ jobs:
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
     - name: Setup PATH
-      run: echo ~/.foundry/bin/ >> $GITHUB_PATH
+      run: echo ~/.config/.foundry/bin/ >> $GITHUB_PATH
     - name: Install Dependencies
       run: curl -L https://foundry.paradigm.xyz | bash && foundryup
     - name: Format
