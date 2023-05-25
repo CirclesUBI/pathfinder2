@@ -3,6 +3,7 @@ use crate::io::{import_from_safes_binary, read_edges_binary, read_edges_csv};
 use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use json::JsonValue;
+use num_bigint::BigUint;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Read;
@@ -13,7 +14,6 @@ use std::str::FromStr;
 use std::sync::mpsc::TrySendError;
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread;
-use num_bigint::BigUint;
 
 struct JsonRpcRequest {
     id: JsonValue,
@@ -171,7 +171,8 @@ fn compute_transfer(
     if parsed_value_param > U256::MAX.into() {
         return Err(Box::new(InputValidationError(format!(
             "Value {} is too large. Maximum value is {}.",
-            parsed_value_param, U256::MAX
+            parsed_value_param,
+            U256::MAX
         ))));
     }
 
