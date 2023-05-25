@@ -10,6 +10,8 @@ pub struct Safe {
     pub balances: BTreeMap<Address, U256>,
     /// Limit percentage in "send to" direction
     pub limit_percentage: BTreeMap<Address, u8>,
+    /// Limit percentage in "user" direction
+    pub limit_percentage_in: BTreeMap<Address, u8>,
     pub organization: bool,
 }
 

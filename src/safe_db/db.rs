@@ -1,5 +1,5 @@
 use std::cmp::min;
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashMap, HashSet};
 
 use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
@@ -31,6 +31,45 @@ impl DB {
 
     fn compute_edges(&mut self) {
         let mut edges = vec![];
+
+        // token address -> orga addresses
+        let mut organization_accepted_tokens: HashMap<Address, HashSet<Address>> = HashMap::new();
+
+        // Build a map from token address to orga addresses that accept this token
+        for (_, safe) in &self.safes {
+            for (send_to, percentage) in &safe.limit_percentage {
+                if percentage == &0 {
+                    continue;
+                }
+
+                let receiver_safe = self.safes.get(send_to).unwrap();
+                if receiver_safe.organization {
+                    //println!("user {} can send {} token to orga {}", user, safe.token_address, send_to);
+                    organization_accepted_tokens.entry(safe.token_address).or_default().insert(*send_to);
+                }
+            }
+        }
+
+        // Find all safes that have a non-zero balance of tokens that are accepted by an organization
+        for (user, safe) in &self.safes {
+            for (token, balance) in &safe.balances {
+                if balance == &U256::from(0) {
+                    continue;
+                }
+                organization_accepted_tokens.get(token).map(|organizations| {
+                    for organization in organizations {
+                        // Add the balance as capacity from 'user' to 'organization'
+                        edges.push(Edge {
+                            from: *user,
+                            to: *organization,
+                            token: *token,
+                            capacity: *balance,
+                        });
+                    }
+                });
+            }
+        }
+
         for (user, safe) in &self.safes {
             // trust connections
             for (send_to, percentage) in &safe.limit_percentage {
