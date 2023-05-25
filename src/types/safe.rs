@@ -1,4 +1,4 @@
-use std::{cmp::min, collections::BTreeMap};
+use std::{collections::BTreeMap};
 
 use super::{Address, U256};
 

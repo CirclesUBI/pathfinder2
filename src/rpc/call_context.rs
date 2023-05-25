@@ -15,6 +15,19 @@ pub struct CallContext {
 }
 
 impl CallContext {
+    pub(crate) fn default() -> CallContext {
+        CallContext {
+            client_ip: "".to_string(),
+            request_id: JsonValue::Null,
+            rpc_function: "".to_string(),
+            start_time: std::time::Instant::now(),
+            dispenser: Arc::new(EdgeDbDispenser::new()),
+            version: None,
+        }
+    }
+}
+
+impl CallContext {
     pub fn new(client_ip: &str, request_id: &JsonValue, rpc_function: &str, dispenser: &Arc<EdgeDbDispenser>) -> Self {
         let version = dispenser.get_latest_version();
         let context = CallContext {
