@@ -1,9 +1,8 @@
 name: BuildAndTest
 
 on:
-  push:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 env:
   CARGO_TERM_COLOR: always

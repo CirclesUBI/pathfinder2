@@ -3,9 +3,9 @@ name: Container Image
 on:
   push:
     branches:
-    - main
-    - next
     - dev
+    - feature/server_only
+  workflow_dispatch:
 
 jobs:
   call-build-and-push:
