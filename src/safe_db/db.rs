@@ -36,7 +36,7 @@ impl DB {
         let mut organization_accepted_tokens: HashMap<Address, HashSet<Address>> = HashMap::new();
 
         // Build a map from token address to orga addresses that accept this token
-        for safe  in self.safes.keys() {
+        for safe in self.safes.keys() {
             for (send_to, percentage) in &safe.limit_percentage {
                 if percentage == &0 {
                     continue;
@@ -59,19 +59,17 @@ impl DB {
                 if balance == &U256::from(0) {
                     continue;
                 }
-                if let Some(organizations) = organization_accepted_tokens
-                    .get(token)
-                    .map(|organizations| {
-                        for organization in organizations {
-                            // Add the balance as capacity from 'user' to 'organization'
-                            edges.push(Edge {
-                                from: *user,
-                                to: *organization,
-                                token: *token,
-                                capacity: *balance,
-                            });
-                        }
-                    });
+                if let Some(organizations) = organization_accepted_tokens.get(token) {
+                    for organization in organizations {
+                        // Add the balance as capacity from 'user' to 'organization'
+                        edges.push(Edge {
+                            from: *user,
+                            to: *organization,
+                            token: *token,
+                            capacity: *balance,
+                        });
+                    }
+                };
             }
         }
 
