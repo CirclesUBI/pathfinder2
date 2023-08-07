@@ -1,9 +1,8 @@
 name: BuildAndTest
 
 on:
-  push:
   pull_request:
-    branches: [ "main" ]
+    branches: [ "dev" ]
 
 env:
   CARGO_TERM_COLOR: always
@@ -23,17 +22,20 @@ jobs:
           ~/.cargo/git
           target
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
-    - name: Setup PATH
-      run: echo ~/.foundry/bin/ >> $GITHUB_PATH
+      
     - name: Install Foundry
       uses: foundry-rs/foundry-toolchain@v1
-    - name: Build
-      run: cargo build --verbose
-    - name: Download safes
-      run: wget -q -c https://rpc.circlesubi.id/pathfinder-db/capacity_graph.db
-    - name: Run tests
-      run: cargo test --verbose
-    - name: Lint
-      run: cargo clippy --all --all-features -- -D warnings
+      
     - name: Format
       run: cargo fmt --check --verbose
+    - name: Lint
+      run: cargo clippy --all --all-features -- -D warnings
+
+    - name: Build
+      run: cargo build --verbose
+      
+    - name: Download safes
+      run: wget -q -c https://rpc.circlesubi.id/pathfinder-db/capacity_graph.db
+      
+    - name: Run tests
+      run: cargo test --verbose
