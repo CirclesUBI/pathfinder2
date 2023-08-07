@@ -1,12 +1,12 @@
 use crate::graph::adjacencies::Adjacencies;
-use crate::graph::{Node};
-use crate::types::edge::EdgeDB;
-use crate::types::{Address, Edge, U256};
-use std::collections::{HashMap, VecDeque};
 use crate::graph::augmenting_path::augmenting_path;
 use crate::graph::extract_transfers::extract_transfers;
 use crate::graph::prune::{prune_edge, prune_flow};
+use crate::graph::Node;
 use crate::rpc::call_context::CallContext;
+use crate::types::edge::EdgeDB;
+use crate::types::{Address, Edge, U256};
+use std::collections::{HashMap, VecDeque};
 
 /**
  The following is a description of how the max flow algorithm is implemented in this codebase.
@@ -55,14 +55,27 @@ pub fn compute_flow(
     let mut adjacencies = Adjacencies::new(edges);
     let mut used_edges: HashMap<Node, HashMap<Node, U256>> = HashMap::new();
 
-    let flow = compute_max_flow(source, sink, &mut adjacencies, &mut used_edges, max_distance);
+    let flow = compute_max_flow(
+        source,
+        sink,
+        &mut adjacencies,
+        &mut used_edges,
+        max_distance,
+    );
     call_context.log_message(format!("Max flow: {}", flow.to_decimal()).as_str());
 
     let flow = prune_excess_flow(source, sink, flow, requested_flow, &mut used_edges);
     call_context.log_message(format!("Flow after pruning: {}", flow.to_decimal()).as_str());
 
     let flow = reduce_transfers_if_needed(max_transfers, flow, &mut used_edges, call_context);
-    call_context.log_message(format!("Flow after limiting transfer steps to {}: {}", max_transfers.unwrap_or_default(), flow.to_decimal()).as_str());
+    call_context.log_message(
+        format!(
+            "Flow after limiting transfer steps to {}: {}",
+            max_transfers.unwrap_or_default(),
+            flow.to_decimal()
+        )
+        .as_str(),
+    );
 
     let transfers = create_sorted_transfers(source, sink, flow, used_edges, call_context);
     // call_context.log_message(format!("Transfers: {:?}", transfers).as_str());
@@ -135,9 +148,13 @@ fn reduce_transfers_if_needed(
 ) -> U256 {
     if let Some(max_transfers) = max_transfers {
         let lost = reduce_transfers(max_transfers * 3, used_edges);
-        call_context.log_message(format!("Capacity lost by transfer count reduction: {}",
-                                         lost.to_decimal_fraction()
-        ).as_str());
+        call_context.log_message(
+            format!(
+                "Capacity lost by transfer count reduction: {}",
+                lost.to_decimal_fraction()
+            )
+            .as_str(),
+        );
         return flow - lost;
     }
     flow
@@ -179,7 +196,8 @@ fn create_sorted_transfers(
     call_context.log_message(format!("Num transfers: {}", transfers.len()).as_str());
 
     let simplified_transfers = simplify_transfers(transfers);
-    call_context.log_message(format!("After simplification: {}", simplified_transfers.len()).as_str());
+    call_context
+        .log_message(format!("After simplification: {}", simplified_transfers.len()).as_str());
 
     sort_transfers(simplified_transfers)
 }

@@ -45,7 +45,10 @@ impl DB {
                 let receiver_safe = self.safes.get(send_to).unwrap();
                 if receiver_safe.organization {
                     //println!("user {} can send {} token to orga {}", user, safe.token_address, send_to);
-                    organization_accepted_tokens.entry(safe.token_address).or_default().insert(*send_to);
+                    organization_accepted_tokens
+                        .entry(safe.token_address)
+                        .or_default()
+                        .insert(*send_to);
                 }
             }
         }
@@ -56,17 +59,19 @@ impl DB {
                 if balance == &U256::from(0) {
                     continue;
                 }
-                organization_accepted_tokens.get(token).map(|organizations| {
-                    for organization in organizations {
-                        // Add the balance as capacity from 'user' to 'organization'
-                        edges.push(Edge {
-                            from: *user,
-                            to: *organization,
-                            token: *token,
-                            capacity: *balance,
-                        });
-                    }
-                });
+                organization_accepted_tokens
+                    .get(token)
+                    .map(|organizations| {
+                        for organization in organizations {
+                            // Add the balance as capacity from 'user' to 'organization'
+                            edges.push(Edge {
+                                from: *user,
+                                to: *organization,
+                                token: *token,
+                                capacity: *balance,
+                            });
+                        }
+                    });
             }
         }
 
@@ -118,10 +123,7 @@ impl DB {
     /// The maximum amount a user can send is the smaller of the user's balance and the difference between
     /// the scaled receiver's balance and the balance calculated based on the trust percentage.
     /// @returns how much of their own tokens a user can send to receiver.
-    fn trust_transfer_limit(&self
-                            , sender: &Safe
-                            , receiver: &Safe
-                            , trust_percentage: u8) -> U256 {
+    fn trust_transfer_limit(&self, sender: &Safe, receiver: &Safe, trust_percentage: u8) -> U256 {
         if receiver.organization {
             // TODO treat this as "return to owner"
             // i.e. limited / only constrained by the balance edge.

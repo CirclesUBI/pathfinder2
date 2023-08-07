@@ -1,8 +1,8 @@
-use std::cmp::min;
-use std::collections::{HashMap, VecDeque};
 use crate::graph::adjacencies::Adjacencies;
 use crate::graph::Node;
 use crate::types::{Address, U256};
+use std::cmp::min;
+use std::collections::{HashMap, VecDeque};
 
 pub fn augmenting_path(
     source: &Address,

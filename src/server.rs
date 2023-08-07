@@ -1,9 +1,9 @@
-use std::io::{Write};
-use std::net::{TcpListener};
+use crate::rpc::rpc_handler::handle_connection;
+use std::io::Write;
+use std::net::TcpListener;
 use std::sync::mpsc::TrySendError;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use crate::rpc::rpc_handler::handle_connection;
 
 use crate::safe_db::edge_db_dispenser::EdgeDbDispenser;
 
@@ -40,7 +40,10 @@ fn validate_and_parse_u256(value_str: &str) -> Result<U256, Box<dyn Error>> {
 }
 
 pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
-    println!("Starting pathfinder. Listening at {} with {} threads and queue size {}.", listen_at, threads, queue_size);
+    println!(
+        "Starting pathfinder. Listening at {} with {} threads and queue size {}.",
+        listen_at, threads, queue_size
+    );
 
     let edge_db_dispenser: Arc<EdgeDbDispenser> = Arc::new(EdgeDbDispenser::new());
 

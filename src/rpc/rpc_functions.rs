@@ -1,13 +1,13 @@
+use crate::graph;
+use crate::io::import_from_safes_binary;
+use crate::rpc::call_context::CallContext;
+use crate::types::{Address, U256};
+use json::JsonValue;
+use num_bigint::BigUint;
+use regex::Regex;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
-use json::JsonValue;
-use num_bigint::BigUint;
-use crate::graph;
-use crate::io::{import_from_safes_binary};
-use crate::types::{Address, U256};
-use regex::Regex;
-use crate::rpc::call_context::CallContext;
 
 pub struct JsonRpcRequest {
     pub id: JsonValue,
@@ -78,19 +78,22 @@ pub fn compute_transfer(
             call_context,
         );
 
-        call_context.log_message(&format!("Computed flow with max distance {:?}: {}", max_distance, flow));
+        call_context.log_message(&format!(
+            "Computed flow with max distance {:?}: {}",
+            max_distance, flow
+        ));
 
         // TODO: This implementation doesn't support the iterative approach anymore. Re-implement it.
         return Ok(json::object! {
-                        maxFlowValue: flow.to_decimal(),
-                        final: max_distance.is_none(),
-                        transferSteps: transfers.into_iter().map(|e| json::object! {
-                            from: e.from.to_checksummed_hex(),
-                            to: e.to.to_checksummed_hex(),
-                            token_owner: e.token.to_checksummed_hex(),
-                            value: e.capacity.to_decimal(),
-                        }).collect::<Vec<_>>(),
-                    });
+            maxFlowValue: flow.to_decimal(),
+            final: max_distance.is_none(),
+            transferSteps: transfers.into_iter().map(|e| json::object! {
+                from: e.from.to_checksummed_hex(),
+                to: e.to.to_checksummed_hex(),
+                token_owner: e.token.to_checksummed_hex(),
+                value: e.capacity.to_decimal(),
+            }).collect::<Vec<_>>(),
+        });
     }
 
     Err(Box::new(InputValidationError(format!(
@@ -105,7 +108,8 @@ fn validate_and_parse_u256(value_str: &str) -> Result<U256, Box<dyn Error>> {
             if parsed_value > U256::MAX.into() {
                 Err(Box::new(InputValidationError(format!(
                     "Value {} is too large. Maximum value is {}.",
-                    parsed_value, U256::MAX
+                    parsed_value,
+                    U256::MAX
                 ))))
             } else {
                 Ok(U256::from_bigint_truncating(parsed_value))
