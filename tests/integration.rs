@@ -13,8 +13,8 @@ fn test_flow_chris_martin() {
     let edges = read_edges();
     let chriseth = Address::from("0x8DC7e86fF693e9032A0F41711b5581a04b26Be2E");
     let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
-    test_flow(&chriseth, &martin, &edges, U256::MAX, None);
-    test_flow(&chriseth, &martin, &edges, U256::MAX, Some(2));
+    test_flow(&chriseth, &martin, &edges, U256::MAX, None, Some(3));
+    test_flow(&chriseth, &martin, &edges, U256::MAX, None, Some(2));
     test_flow(
         &chriseth,
         &martin,
