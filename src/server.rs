@@ -3,6 +3,8 @@ use crate::io::{import_from_safes_binary, read_edges_binary, read_edges_csv};
 use crate::types::edge::EdgeDB;
 use crate::types::{Address, Edge, U256};
 use json::JsonValue;
+use num_bigint::BigUint;
+use regex::Regex;
 use std::error::Error;
 use std::fmt::{Debug, Display, Formatter};
 use std::io::Read;
@@ -13,7 +15,6 @@ use std::str::FromStr;
 use std::sync::mpsc::TrySendError;
 use std::sync::{mpsc, Arc, Mutex, RwLock};
 use std::thread;
-use num_bigint::BigUint;
 
 struct JsonRpcRequest {
     id: JsonValue,
@@ -32,6 +33,38 @@ impl Debug for InputValidationError {
 impl Display for InputValidationError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Error: {}", self.0)
+    }
+}
+
+fn validate_and_parse_ethereum_address(address: &str) -> Result<Address, Box<dyn Error>> {
+    let re = Regex::new(r"^0x[0-9a-fA-F]{40}$").unwrap();
+    if re.is_match(address) {
+        Ok(Address::from(address))
+    } else {
+        Err(Box::new(InputValidationError(format!(
+            "Invalid Ethereum address: {}",
+            address
+        ))))
+    }
+}
+
+fn validate_and_parse_u256(value_str: &str) -> Result<U256, Box<dyn Error>> {
+    match BigUint::from_str(value_str) {
+        Ok(parsed_value) => {
+            if parsed_value > U256::MAX.into() {
+                Err(Box::new(InputValidationError(format!(
+                    "Value {} is too large. Maximum value is {}.",
+                    parsed_value,
+                    U256::MAX
+                ))))
+            } else {
+                Ok(U256::from_bigint_truncating(parsed_value))
+            }
+        }
+        Err(e) => Err(Box::new(InputValidationError(format!(
+            "Invalid value: {}. Couldn't parse value: {}",
+            value_str, e
+        )))),
     }
 }
 
@@ -156,37 +189,26 @@ fn compute_transfer(
     socket.write_all(chunked_header().as_bytes())?;
 
     let parsed_value_param = match request.params["value"].as_str() {
-        Some(value_str) => match BigUint::from_str(value_str) {
-            Ok(parsed_value) => parsed_value,
-            Err(e) => {
-                return Err(Box::new(InputValidationError(format!(
-                    "Invalid value: {}. Couldn't parse value: {}",
-                    value_str, e
-                ))));
-            }
-        },
-        None => U256::MAX.into(),
+        Some(value_str) => validate_and_parse_u256(value_str)?,
+        None => U256::MAX,
     };
 
-    if parsed_value_param > U256::MAX.into() {
-        return Err(Box::new(InputValidationError(format!(
-            "Value {} is too large. Maximum value is {}.",
-            parsed_value_param, U256::MAX
-        ))));
-    }
+    let from_address = validate_and_parse_ethereum_address(&request.params["from"].to_string())?;
+    let to_address = validate_and_parse_ethereum_address(&request.params["to"].to_string())?;
 
     let max_distances = if request.params["iterative"].as_bool().unwrap_or_default() {
         vec![Some(1), Some(2), None]
     } else {
         vec![None]
     };
+
     let max_transfers = request.params["max_transfers"].as_u64();
     for max_distance in max_distances {
         let (flow, transfers) = graph::compute_flow(
-            &Address::from(request.params["from"].to_string().as_str()),
-            &Address::from(request.params["to"].to_string().as_str()),
+            &from_address,
+            &to_address,
             edges,
-            U256::from_bigint_truncating(parsed_value_param.clone()),
+            parsed_value_param,
             max_distance,
             max_transfers,
         );
