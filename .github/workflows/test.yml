@@ -25,8 +25,8 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.toml') }}
     - name: Setup PATH
       run: echo ~/.foundry/bin/ >> $GITHUB_PATH
-    - name: Install Dependencies
-      run: curl -L https://foundry.paradigm.xyz | bash && foundryup
+    - name: Install Foundry
+      uses: foundry-rs/foundry-toolchain@v1
     - name: Build
       run: cargo build --verbose
     - name: Download safes
