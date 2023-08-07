@@ -26,12 +26,13 @@ fn test_flow_chris_martin() {
 }
 
 #[test]
+// Test between organisations - Herbie to Coop
 fn test_flow_large() {
     let edges = read_edges();
-    let large_source = Address::from("0x9BA1Bcd88E99d6E1E03252A70A63FEa83Bf1208c");
-    let large_dest = Address::from("0x939b2731997922f21ab0a0bab500a949c0fc3550");
-    test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(4));
-    test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(6));
+    let large_source = Address::from("0x35949239FdB5C2B93C63ac5244dab9D2132ac05d");
+    let large_dest = Address::from("0x9BA1Bcd88E99d6E1E03252A70A63FEa83Bf1208c");
+    test_flow(&large_source, &large_dest, &edges, U256::MAX, None);
+    test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(10));
 }
 
 fn read_edges() -> EdgeDB {
