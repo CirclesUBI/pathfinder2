@@ -44,7 +44,7 @@ fn test_flow_large() {
 }
 
 fn read_edges() -> EdgeDB {
-    import_from_safes_binary("graph_at_20230523_15_00.db")
+    import_from_safes_binary("capacity_graph.db")
         .unwrap()
         .edges()
         .clone()
