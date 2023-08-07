@@ -36,7 +36,7 @@ impl DB {
         let mut organization_accepted_tokens: HashMap<Address, HashSet<Address>> = HashMap::new();
 
         // Build a map from token address to orga addresses that accept this token
-        for safe in self.safes.keys() {
+        for safe in self.safes.values() {
             for (send_to, percentage) in &safe.limit_percentage {
                 if percentage == &0 {
                     continue;
