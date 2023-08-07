@@ -36,7 +36,7 @@ impl DB {
         let mut organization_accepted_tokens: HashMap<Address, HashSet<Address>> = HashMap::new();
 
         // Build a map from token address to orga addresses that accept this token
-        for (_, safe) in &self.safes {
+        for safe  in self.safes.keys() {
             for (send_to, percentage) in &safe.limit_percentage {
                 if percentage == &0 {
                     continue;
@@ -59,7 +59,7 @@ impl DB {
                 if balance == &U256::from(0) {
                     continue;
                 }
-                organization_accepted_tokens
+                if let Some(organizations) = organization_accepted_tokens
                     .get(token)
                     .map(|organizations| {
                         for organization in organizations {
