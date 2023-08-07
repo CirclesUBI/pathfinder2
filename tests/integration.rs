@@ -31,7 +31,14 @@ fn test_flow_large() {
     let edges = read_edges();
     let large_source = Address::from("0x3c89A829400Ea3B49F25738A1F4015A7961D0301");
     let large_dest = Address::from("0x9BA1Bcd88E99d6E1E03252A70A63FEa83Bf1208c");
-    test_flow(&large_source, &large_dest, &edges, U256::MAX, None, Some(30));
+    test_flow(
+        &large_source,
+        &large_dest,
+        &edges,
+        U256::MAX,
+        None,
+        Some(30),
+    );
     // test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(10));
 }
 
@@ -42,7 +49,6 @@ fn read_edges() -> EdgeDB {
         .clone()
 }
 
-
 fn test_flow(
     source: &Address,
     sink: &Address,
@@ -51,7 +57,14 @@ fn test_flow(
     max_distance: Option<u64>,
     max_transfers: Option<u64>,
 ) {
-    let transfers = compute_flow(source, sink, edges, requested_flow, max_distance, max_transfers);
+    let transfers = compute_flow(
+        source,
+        sink,
+        edges,
+        requested_flow,
+        max_distance,
+        max_transfers,
+    );
     println!("{transfers:?}");
 
     let token_owners = transfers
