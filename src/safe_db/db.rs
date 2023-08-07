@@ -45,7 +45,10 @@ impl DB {
                 let receiver_safe = self.safes.get(send_to).unwrap();
                 if receiver_safe.organization {
                     //println!("user {} can send {} token to orga {}", user, safe.token_address, send_to);
-                    organization_accepted_tokens.entry(safe.token_address).or_default().insert(*send_to);
+                    organization_accepted_tokens
+                        .entry(safe.token_address)
+                        .or_default()
+                        .insert(*send_to);
                 }
             }
         }
@@ -56,17 +59,19 @@ impl DB {
                 if balance == &U256::from(0) {
                     continue;
                 }
-                organization_accepted_tokens.get(token).map(|organizations| {
-                    for organization in organizations {
-                        // Add the balance as capacity from 'user' to 'organization'
-                        edges.push(Edge {
-                            from: *user,
-                            to: *organization,
-                            token: *token,
-                            capacity: *balance,
-                        });
-                    }
-                });
+                organization_accepted_tokens
+                    .get(token)
+                    .map(|organizations| {
+                        for organization in organizations {
+                            // Add the balance as capacity from 'user' to 'organization'
+                            edges.push(Edge {
+                                from: *user,
+                                to: *organization,
+                                token: *token,
+                                capacity: *balance,
+                            });
+                        }
+                    });
             }
         }
 
