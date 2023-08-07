@@ -20,9 +20,10 @@ fn test_flow_chris_martin() {
         &martin,
         &edges,
         U256::from(71152921504606846976),
+        None,
         Some(2),
     );
-    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, Some(2));
+    test_flow(&chriseth, &martin, &read_edges(), U256::MAX, None, Some(2));
 }
 
 #[test]
