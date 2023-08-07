@@ -2,6 +2,8 @@ name: Container Image
 
 on:
   push:
+    tags:
+    - v[0-9]+.[0-9]+.[0-9]+*
     branches:
     - dev
     - feature/server_only
