@@ -1,3 +1,4 @@
+use pathfinder2::rpc::call_context::CallContext;
 use pathfinder2::graph::compute_flow;
 use pathfinder2::io::import_from_safes_binary;
 use pathfinder2::types::edge::EdgeDB;
@@ -13,8 +14,8 @@ fn test_flow_chris_martin() {
     let edges = read_edges();
     let chriseth = Address::from("0x8DC7e86fF693e9032A0F41711b5581a04b26Be2E");
     let martin = Address::from("0x42cEDde51198D1773590311E2A340DC06B24cB37");
-    test_flow(&chriseth, &martin, &edges, U256::MAX, None, None, None);
-    test_flow(&chriseth, &martin, &edges, U256::MAX, None, Some(2), None);
+    test_flow(&chriseth, &martin, &edges, U256::MAX, None, None, &CallContext);
+    test_flow(&chriseth, &martin, &edges, U256::MAX, None, Some(2), &CallContext);
     test_flow(
         &chriseth,
         &martin,
@@ -22,6 +23,7 @@ fn test_flow_chris_martin() {
         U256::from(71152921504606846976),
         None,
         Some(2),
+        &CallContext,
     );
     test_flow(
         &chriseth,
@@ -30,7 +32,7 @@ fn test_flow_chris_martin() {
         U256::MAX,
         None,
         Some(2),
-        None,
+        &CallContext,
     );
 }
 
@@ -47,7 +49,7 @@ fn test_flow_large() {
         U256::MAX,
         None,
         Some(30),
-        None,
+        &CallContext,
     );
     // test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(10));
 }
@@ -75,6 +77,7 @@ fn test_flow(
         requested_flow,
         max_distance,
         max_transfers,
+        call_context, 
     );
     println!("{transfers:?}");
 
