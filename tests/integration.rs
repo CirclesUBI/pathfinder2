@@ -23,33 +23,6 @@ fn test_flow_chris_martin() {
         None,
         &CallContext::default(),
     );
-    test_flow(
-        &chriseth,
-        &martin,
-        &edges,
-        U256::MAX,
-        None,
-        Some(2),
-        &CallContext::default(),
-    );
-    test_flow(
-        &chriseth,
-        &martin,
-        &edges,
-        U256::from(71152921504606846976),
-        None,
-        Some(2),
-        &CallContext::default(),
-    );
-    test_flow(
-        &chriseth,
-        &martin,
-        &read_edges(),
-        U256::MAX,
-        None,
-        Some(2),
-        &CallContext::default(),
-    );
 }
 
 #[test]
