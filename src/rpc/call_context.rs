@@ -1,10 +1,10 @@
 use crate::safe_db::edge_db_dispenser::{EdgeDBVersion, EdgeDbDispenser};
 use json::JsonValue;
+use std::default::Default;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use std::time::SystemTime;
-use std::default::Default;
 
 pub struct CallContext {
     pub client_ip: String,
@@ -16,7 +16,7 @@ pub struct CallContext {
 }
 
 impl Default for CallContext {
-     fn default() -> CallContext {
+    fn default() -> CallContext {
         CallContext {
             client_ip: "".to_string(),
             request_id: JsonValue::Null,
