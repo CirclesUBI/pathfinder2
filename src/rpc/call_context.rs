@@ -4,6 +4,7 @@ use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use std::time::SystemTime;
+use std::default::Default;
 
 pub struct CallContext {
     pub client_ip: String,
@@ -14,8 +15,8 @@ pub struct CallContext {
     pub version: Option<EdgeDBVersion>,
 }
 
-impl CallContext {
-    pub fn default() -> CallContext {
+impl Default for CallContext {
+     fn default() -> CallContext {
         CallContext {
             client_ip: "".to_string(),
             request_id: JsonValue::Null,
