@@ -21,7 +21,7 @@ fn test_flow_chris_martin() {
         U256::MAX,
         None,
         None,
-        &CallContext,
+        &CallContext::default(),
     );
     test_flow(
         &chriseth,
@@ -30,7 +30,7 @@ fn test_flow_chris_martin() {
         U256::MAX,
         None,
         Some(2),
-        &CallContext,
+        &CallContext::default(),
     );
     test_flow(
         &chriseth,
@@ -39,7 +39,7 @@ fn test_flow_chris_martin() {
         U256::from(71152921504606846976),
         None,
         Some(2),
-        &CallContext,
+        &CallContext::default(),
     );
     test_flow(
         &chriseth,
@@ -48,7 +48,7 @@ fn test_flow_chris_martin() {
         U256::MAX,
         None,
         Some(2),
-        &CallContext,
+        &CallContext::default(),
     );
 }
 
@@ -65,7 +65,7 @@ fn test_flow_large() {
         U256::MAX,
         None,
         Some(30),
-        &CallContext,
+        &CallContext::default(),
     );
     // test_flow(&large_source, &large_dest, &edges, U256::MAX, Some(10));
 }
