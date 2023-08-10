@@ -67,7 +67,7 @@ pub fn compute_transfer(
 
     let max_transfers = request.params["max_transfers"].as_u64();
 
-    for max_distance in max_distances {
+    if let Some(max_distance) = max_distances.into_iter().next() {
         let (flow, transfers) = graph::compute_flow(
             &from_address,
             &to_address,

@@ -15,7 +15,7 @@ pub struct CallContext {
 }
 
 impl CallContext {
-    pub(crate) fn default() -> CallContext {
+    pub fn default() -> CallContext {
         CallContext {
             client_ip: "".to_string(),
             request_id: JsonValue::Null,
@@ -41,7 +41,7 @@ impl CallContext {
             rpc_function: rpc_function.to_string(),
             start_time: std::time::Instant::now(),
             dispenser: dispenser.clone(),
-            version: version,
+            version,
         };
 
         context.log("->", None, None);
