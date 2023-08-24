@@ -56,6 +56,9 @@ impl DB {
                     if *balance != U256::from(0) {
                         user_accepted_tokens.get(token).map(|trusting_users| {
                             for (trusting_user, percentage) in trusting_users {
+                                if *user == *trusting_user {
+                                    continue;
+                                }
                                 let limit
                                 if trusting_user.organization || *token == *trusting_user {
                                     limit = balance
