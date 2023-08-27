@@ -1,2 +1,2 @@
 pub mod db;
-pub mod safes_json;
+pub mod edge_db_dispenser;
