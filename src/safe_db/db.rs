@@ -1,5 +1,4 @@
-use std::cmp::min;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::BTreeMap;
 
 use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
