@@ -31,8 +31,12 @@ impl Safe {
     /// difference between the scaled receiver's balance and the balance calculated based on the trust
     /// percentage.
     /// @returns how much of a token a user can send to receiver.
-    pub fn trust_transfer_limit(&self, receiver: &Safe, trust_percentage: u8, token: &Address) -> U256 {
-
+    pub fn trust_transfer_limit(
+        &self,
+        receiver: &Safe,
+        trust_percentage: u8,
+        token: &Address,
+    ) -> U256 {
         let receiver_balance = receiver.balance(token);
 
         let amount = (receiver.balance(&receiver.token_address)
@@ -45,10 +49,7 @@ impl Safe {
         } else {
             // TODO it should not be "min" - the second constraint
             // is set by the balance edge.
-            min(
-                amount - scaled_receiver_balance,
-                self.balance(token),
-            )
+            min(amount - scaled_receiver_balance, self.balance(token))
         }
     }
 }

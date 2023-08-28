@@ -56,7 +56,11 @@ impl DB {
                                     } else {
                                         // TODO it should not be "min" - the second constraint
                                         // is set by the balance edge.
-                                        limit = safe.trust_transfer_limit(receiver_safe, *percentage, token);
+                                        limit = safe.trust_transfer_limit(
+                                            receiver_safe,
+                                            *percentage,
+                                            token,
+                                        );
                                     }
                                     if limit != U256::from(0) {
                                         edges.push(Edge {
