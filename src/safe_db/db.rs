@@ -50,7 +50,9 @@ impl DB {
                                     // sender, i.e., the user can send all their tokens to an organization.
                                     // Likewise, if the receiver is the owner of the token, the edge's limit is
                                     // the sender's balance of that token.
-                                    let limit: U256 = if receiver_safe.organization || *owner == *send_to {
+                                    let limit: U256 = if receiver_safe.organization
+                                        || *owner == *send_to
+                                    {
                                         *balance
                                     } else {
                                         // TODO it should not be "min" - the second constraint
