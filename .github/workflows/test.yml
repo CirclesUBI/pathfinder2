@@ -2,7 +2,7 @@ name: BuildAndTest
 
 on:
   pull_request:
-    branches: [ "dev", "compute-edges-all" ]
+    branches: [ "dev" ]
 
 env:
   CARGO_TERM_COLOR: always
