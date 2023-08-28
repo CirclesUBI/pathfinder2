@@ -46,22 +46,17 @@ impl DB {
                                     continue;
                                 }
                                 if let Some(receiver_safe) = self.safes.get(send_to) {
-                                    let limit;
                                     // If the receiver is an organization, the edge's limit is the balance of the
                                     // sender, i.e., the user can send all their tokens to an organization.
                                     // Likewise, if the receiver is the owner of the token, the edge's limit is
                                     // the sender's balance of that token.
-                                    if receiver_safe.organization || *owner == *send_to {
-                                        limit = *balance;
+                                    let limit: U256 = if receiver_safe.organization || *owner == *send_to {
+                                        *balance
                                     } else {
                                         // TODO it should not be "min" - the second constraint
                                         // is set by the balance edge.
-                                        limit = safe.trust_transfer_limit(
-                                            receiver_safe,
-                                            *percentage,
-                                            token,
-                                        );
-                                    }
+                                        safe.trust_transfer_limit(receiver_safe, *percentage, token)
+                                    };
                                     if limit != U256::from(0) {
                                         edges.push(Edge {
                                             from: *user,
