@@ -1,5 +1,4 @@
-use std::cmp::min;
-use std::collections::{BTreeMap, HashMap, HashSet};
+use std::collections::BTreeMap;
 
 use crate::types::{edge::EdgeDB, Address, Edge, Safe, U256};
 
@@ -30,121 +29,50 @@ impl DB {
     }
 
     fn compute_edges(&mut self) {
+        // Universal computation of edges
+        // Let's assume that any "token" is represented by the address of its owner in the edges
+        // We also assume that the "send_to" relationship is the opposite to the trust relationship
+        // List of edges
         let mut edges = vec![];
-
-        // token address -> orga addresses
-        let mut organization_accepted_tokens: HashMap<Address, HashSet<Address>> = HashMap::new();
-
-        // Build a map from token address to orga addresses that accept this token
-        for safe in self.safes.values() {
-            for (send_to, percentage) in &safe.limit_percentage {
-                if percentage == &0 {
-                    continue;
-                }
-
-                let receiver_safe = self.safes.get(send_to).unwrap();
-                if receiver_safe.organization {
-                    //println!("user {} can send {} token to orga {}", user, safe.token_address, send_to);
-                    organization_accepted_tokens
-                        .entry(safe.token_address)
-                        .or_default()
-                        .insert(*send_to);
-                }
-            }
-        }
-
-        // Find all safes that have a non-zero balance of tokens that are accepted by an organization
+        // Create the edges from the token holders to anyone who trusts that token
         for (user, safe) in &self.safes {
-            for (token, balance) in &safe.balances {
-                if balance == &U256::from(0) {
-                    continue;
-                }
-                if let Some(organizations) = organization_accepted_tokens.get(token) {
-                    for organization in organizations {
-                        // Add the balance as capacity from 'user' to 'organization'
-                        edges.push(Edge {
-                            from: *user,
-                            to: *organization,
-                            token: *token,
-                            capacity: *balance,
-                        });
-                    }
-                };
-            }
-        }
-
-        for (user, safe) in &self.safes {
-            // trust connections
-            for (send_to, percentage) in &safe.limit_percentage {
-                if *user == *send_to {
-                    continue;
-                }
-
-                if let Some(receiver_safe) = self.safes.get(send_to) {
-                    let limit = self.trust_transfer_limit(safe, receiver_safe, *percentage);
-                    if limit != U256::from(0) {
-                        edges.push(Edge {
-                            from: *user,
-                            to: *send_to,
-                            token: *user,
-                            capacity: limit,
-                        })
-                    }
-                }
-            }
-            // send tokens back to owner
             for (token, balance) in &safe.balances {
                 if let Some(owner) = self.token_owner.get(token) {
-                    if *user != *owner && *balance != U256::from(0) {
-                        edges.push(Edge {
-                            from: *user,
-                            to: *owner,
-                            token: *owner,
-                            capacity: *balance,
-                        })
+                    if *balance != U256::from(0) {
+                        if let Some(owner_safe) = self.safes.get(owner) {
+                            // "limit_percentage" represents the list of users that accept the "owner_safe"'s token
+                            for (send_to, percentage) in &owner_safe.limit_percentage {
+                                if percentage == &0 || *user == *send_to {
+                                    continue;
+                                }
+                                if let Some(receiver_safe) = self.safes.get(send_to) {
+                                    let limit;
+                                    // If the receiver is an organization, the edge's limit is the balance of the
+                                    // sender, i.e., the user can send all their tokens to an organization.
+                                    // Likewise, if the receiver is the owner of the token, the edge's limit is
+                                    // the sender's balance of that token.
+                                    if receiver_safe.organization || *owner == *send_to {
+                                        limit = *balance;
+                                    } else {
+                                        // TODO it should not be "min" - the second constraint
+                                        // is set by the balance edge.
+                                        limit = safe.trust_transfer_limit(receiver_safe, *percentage, token);
+                                    }
+                                    if limit != U256::from(0) {
+                                        edges.push(Edge {
+                                            from: *user,
+                                            to: *send_to,
+                                            token: *owner,
+                                            capacity: limit,
+                                        });
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
         }
         self.edges = EdgeDB::new(edges)
-    }
-
-    /// This method calculates how much of their own tokens a user can send to a given receiver.
-    /// The transfer limit is based on the trust relationship between the user and the receiver,
-    /// denoted by the trust_percentage argument.
-    /// If the receiver is an organization, the method simply returns the balance of the sender, i.e.,
-    /// the user can send all their tokens to an organization.
-    /// If the receiver is a regular user, the method calculates the transfer limit based on the balance
-    /// of the receiver and the trust percentage. The method scales down the receiver's balance based
-    /// on the trust percentage and compares it with the original balance to calculate the maximum
-    /// amount the user can send.
-    /// The maximum amount a user can send is the smaller of the user's balance and the difference between
-    /// the scaled receiver's balance and the balance calculated based on the trust percentage.
-    /// @returns how much of their own tokens a user can send to receiver.
-    fn trust_transfer_limit(&self, sender: &Safe, receiver: &Safe, trust_percentage: u8) -> U256 {
-        if receiver.organization {
-            // TODO treat this as "return to owner"
-            // i.e. limited / only constrained by the balance edge.
-            sender.balance(&sender.token_address)
-        } else {
-            let receiver_balance = receiver.balance(&sender.token_address);
-
-            let amount = (receiver.balance(&receiver.token_address)
-                * U256::from(trust_percentage as u128))
-                / U256::from(100);
-
-            let scaled_receiver_balance =
-                receiver_balance * U256::from((100 - trust_percentage) as u128) / U256::from(100);
-
-            if amount < receiver_balance {
-                U256::from(0)
-            } else {
-                // TODO it should not be "min" - the second constraint is set by the balance edge.
-                min(
-                    amount - scaled_receiver_balance,
-                    sender.balance(&sender.token_address),
-                )
-            }
-        }
     }
 }
