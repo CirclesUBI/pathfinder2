@@ -11,3 +11,5 @@ Cargo.lock
 
 # Capacity graph runtime state
 capacity_graph.db
+
+edges.dat
