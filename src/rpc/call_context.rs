@@ -69,6 +69,10 @@ impl CallContext {
     pub fn log_message(&self, message: &str) {
         self.log("  ", Some(&format!(" {}", message)), None);
     }
+
+    pub fn log_warning(&self, message: &str) {
+        self.log(" ! ", Some(&format!(" {}", message)), None);
+    }
 }
 
 impl Drop for CallContext {

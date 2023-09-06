@@ -181,7 +181,7 @@ fn create_sorted_transfers(
     let simplified_transfers = simplify_transfers(transfers);
     call_context.log_message(format!("After simplification: {}", simplified_transfers.len()).as_str());
 
-    sort_transfers(simplified_transfers)
+    sort_transfers(call_context, simplified_transfers)
 }
 
 fn find_pair_to_simplify(transfers: &Vec<Edge>) -> Option<(usize, usize)> {
@@ -208,7 +208,7 @@ fn simplify_transfers(mut transfers: Vec<Edge>) -> Vec<Edge> {
     transfers
 }
 
-fn sort_transfers(transfers: Vec<Edge>) -> Vec<Edge> {
+fn sort_transfers(context:&CallContext, transfers: Vec<Edge>) -> Vec<Edge> {
     // We have to sort the transfers to satisfy the following condition:
     // A user can send away their own tokens only after it has received all (trust) transfers.
 
@@ -217,15 +217,26 @@ fn sort_transfers(transfers: Vec<Edge>) -> Vec<Edge> {
         *receives_to_wait_for.entry(e.to).or_default() += 1;
         receives_to_wait_for.entry(e.from).or_default();
     }
+
     let mut result = Vec::new();
     let mut queue = transfers.into_iter().collect::<VecDeque<Edge>>();
+    let mut no_progress_counter = 0; // counts iterations without progress
+
     while let Some(e) = queue.pop_front() {
-        //println!("queue size: {}", queue.len());
         if *receives_to_wait_for.get(&e.from).unwrap() == 0 {
             *receives_to_wait_for.get_mut(&e.to).unwrap() -= 1;
-            result.push(e)
+            result.push(e);
+            no_progress_counter = 0; // reset counter when we make progress
         } else {
             queue.push_back(e);
+            no_progress_counter += 1;
+
+            // If we've looped through all entries without progress, break
+            if no_progress_counter == queue.len() {
+                context.log_message(format!("Loop detected! No valid order can be found.").as_str());
+                result.clear();
+                break;
+            }
         }
     }
     result
