@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::ffi::CString;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use json::JsonValue;
@@ -8,6 +9,16 @@ use crate::io::{import_from_safes_binary};
 use crate::types::{Address, U256};
 use regex::Regex;
 use crate::rpc::call_context::CallContext;
+use lazy_static::lazy_static;
+use std::sync::{Arc, Mutex};
+use crate::safe_db::edge_db_dispenser::EdgeDbDispenser;
+use json::parse as json_parse;
+use std::os::raw::c_char;
+
+// Global state for edge_db_dispenser
+lazy_static! {
+    static ref EDGE_DB_DISPENSER: Mutex<Option<Arc<EdgeDbDispenser>>> = Mutex::new(None);
+}
 
 pub struct JsonRpcRequest {
     pub id: JsonValue,
@@ -31,9 +42,43 @@ impl Display for InputValidationError {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn ffi_initialize() {
+    let edge_db_dispenser: Arc<EdgeDbDispenser> = Arc::new(EdgeDbDispenser::new());
+    *EDGE_DB_DISPENSER.lock().unwrap() = Some(edge_db_dispenser);
+}
+
+
+#[no_mangle]
+pub extern "C" fn ffi_load_safes_binary(file: *const c_char) -> usize {
+    let file_str = unsafe { std::ffi::CStr::from_ptr(file).to_str().unwrap() };
+    let dispenser = EDGE_DB_DISPENSER.lock().unwrap().as_ref().unwrap().clone();
+    let call_context = CallContext::new(&dispenser); // Unwrap the parsed JSON
+    let result = load_safes_binary(file_str, &call_context).unwrap_or(0);
+
+    result
+}
+
+#[no_mangle]
+pub extern "C" fn ffi_compute_transfer(request_json: *const c_char) -> *mut c_char {
+    let request_str = unsafe { std::ffi::CStr::from_ptr(request_json).to_str().unwrap() };
+    let parsed_json = json_parse(request_str).unwrap();
+    let request = JsonRpcRequest {
+        id: parsed_json["id"].clone(),
+        method: parsed_json["method"].as_str().unwrap_or_default().to_string(),
+        params: parsed_json["params"].clone(),
+    };
+    let dispenser = EDGE_DB_DISPENSER.lock().unwrap().as_ref().unwrap().clone();
+    let call_context = CallContext::new(&dispenser);
+    let result = compute_transfer(&request, &call_context).unwrap_or(json::object! {});
+    let c_string = CString::new(result.dump()).unwrap();
+    c_string.into_raw()
+}
+
 pub fn load_safes_binary(file: &str, call_context: &CallContext) -> Result<usize, Box<dyn Error>> {
     let updated_edges = import_from_safes_binary(file)?.edges().clone();
     let len = updated_edges.edge_count();
+
     call_context.dispenser.update(updated_edges);
     Ok(len)
 }

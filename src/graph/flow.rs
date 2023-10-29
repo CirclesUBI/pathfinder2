@@ -65,7 +65,6 @@ pub fn compute_flow(
     call_context.log_message(format!("Flow after limiting transfer steps to {}: {}", max_transfers.unwrap_or_default(), flow.to_decimal()).as_str());
 
     let transfers = create_sorted_transfers(source, sink, flow, used_edges, call_context);
-    // call_context.log_message(format!("Transfers: {:?}", transfers).as_str());
 
     (flow, transfers)
 }
