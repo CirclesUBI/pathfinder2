@@ -22,9 +22,9 @@ pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
     // trust edges
     for _ in 0..read_u32(&mut f)? {
         let user = read_address(&mut f, &address_index)?;
-        assert!(user != Address::default());
+        assert_ne!(user, Address::default());
         let send_to = read_address(&mut f, &address_index)?;
-        assert!(send_to != Address::default());
+        assert_ne!(send_to, Address::default());
         let limit_percentage = read_u8(&mut f)?;
         assert!(limit_percentage <= 100);
 
@@ -40,9 +40,9 @@ pub fn import_from_safes_binary(path: &str) -> Result<DB, io::Error> {
     // balances
     for _ in 0..read_u32(&mut f)? {
         let user = read_address(&mut f, &address_index)?;
-        assert!(user != Address::default());
+        assert_ne!(user, Address::default());
         let token_owner = read_address(&mut f, &address_index)?;
-        assert!(token_owner != Address::default());
+        assert_ne!(token_owner, Address::default());
         let balance = read_u256(&mut f)?;
         if balance != U256::from(0) {
             safes

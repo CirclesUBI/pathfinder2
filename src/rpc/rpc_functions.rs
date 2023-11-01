@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::ffi::CString;
 use std::fmt::{Debug, Display, Formatter};
 use std::str::FromStr;
 use json::JsonValue;
@@ -8,6 +9,15 @@ use crate::io::{import_from_safes_binary};
 use crate::types::{Address, U256};
 use regex::Regex;
 use crate::rpc::call_context::CallContext;
+use lazy_static::lazy_static;
+use std::sync::{Arc, Mutex};
+use crate::safe_db::edge_db_dispenser::EdgeDbDispenser;
+use std::os::raw::c_char;
+
+// Global state for edge_db_dispenser
+lazy_static! {
+    static ref EDGE_DB_DISPENSER: Mutex<Option<Arc<EdgeDbDispenser>>> = Mutex::new(None);
+}
 
 pub struct JsonRpcRequest {
     pub id: JsonValue,
@@ -31,18 +41,56 @@ impl Display for InputValidationError {
     }
 }
 
+#[no_mangle]
+pub extern "C" fn ffi_initialize() {
+    let edge_db_dispenser: Arc<EdgeDbDispenser> = Arc::new(EdgeDbDispenser::new());
+    *EDGE_DB_DISPENSER.lock().unwrap() = Some(edge_db_dispenser);
+}
+
+
+#[no_mangle]
+pub extern "C" fn ffi_load_safes_binary(file: *const c_char) -> usize {
+    let file_str = unsafe { std::ffi::CStr::from_ptr(file).to_str().unwrap() };
+    let dispenser = EDGE_DB_DISPENSER.lock().unwrap().as_ref().unwrap().clone();
+    let call_context = CallContext::new(&dispenser); // Unwrap the parsed JSON
+    let result = load_safes_binary(file_str, &call_context).unwrap_or(0);
+
+    result
+}
+
+#[no_mangle]
+pub extern "C" fn ffi_compute_transfer(from: *const c_char, to: *const c_char, amount: *const c_char) -> *mut c_char {
+    let from_address = unsafe { std::ffi::CStr::from_ptr(from).to_str().unwrap() };
+    let to_address = unsafe { std::ffi::CStr::from_ptr(to).to_str().unwrap() };
+    let transfer_amount = unsafe { std::ffi::CStr::from_ptr(amount).to_str().unwrap() };
+
+    let dispenser = EDGE_DB_DISPENSER.lock().unwrap().as_ref().unwrap().clone();
+    let call_context = CallContext::new(&dispenser);
+    let result = compute_transfer(
+        from_address
+        , to_address
+        , transfer_amount
+        , &call_context).unwrap();
+
+    let c_string = CString::new(result.dump()).unwrap();
+    c_string.into_raw()
+}
+
 pub fn load_safes_binary(file: &str, call_context: &CallContext) -> Result<usize, Box<dyn Error>> {
     let updated_edges = import_from_safes_binary(file)?.edges().clone();
     let len = updated_edges.edge_count();
+
     call_context.dispenser.update(updated_edges);
     Ok(len)
 }
 
 pub fn compute_transfer(
-    request: &JsonRpcRequest,
+    from: &str,
+    to: &str,
+    value: &str,
     call_context: &CallContext,
 ) -> Result<JsonValue, Box<dyn Error>> {
-    call_context.log_message(format!("{}", request.params).as_str());
+    call_context.log_message(format!("compute_transfer(from: {}, to: {}, value: {})", from, to, value).as_str());
     if call_context.version.is_none() {
         return Err(Box::new(InputValidationError(
             "No edges loaded yet".to_string(),
@@ -50,22 +98,11 @@ pub fn compute_transfer(
     }
 
     let edges = &call_context.version.as_ref().unwrap().edges;
-
-    let parsed_value_param = match request.params["value"].as_str() {
-        Some(value_str) => validate_and_parse_u256(value_str)?,
-        None => U256::MAX,
-    };
-
-    let from_address = validate_and_parse_ethereum_address(&request.params["from"].to_string())?;
-    let to_address = validate_and_parse_ethereum_address(&request.params["to"].to_string())?;
-
-    let max_distances = if request.params["iterative"].as_bool().unwrap_or_default() {
-        vec![Some(1), Some(2), None]
-    } else {
-        vec![None]
-    };
-
-    let max_transfers = request.params["max_transfers"].as_u64();
+    let parsed_value_param = validate_and_parse_u256(value)?;
+    let from_address = validate_and_parse_ethereum_address(from)?;
+    let to_address = validate_and_parse_ethereum_address(to)?;
+    let max_distances = vec![None];
+    let max_transfers = None;
 
     for max_distance in max_distances {
         let (flow, transfers) = graph::compute_flow(
