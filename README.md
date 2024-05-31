@@ -12,7 +12,7 @@ The `server` (default), the `cli` and the `convert` tool.
 All need a file that contains the trust graph edges to work.  
 A reasonably up to date edge database file can be obtained from
 
-- https://chriseth.github.io/pathfinder2/edges.dat
+- https://circlesubi.github.io/pathfinder2/edges.dat
 
 ### Using the Server
 

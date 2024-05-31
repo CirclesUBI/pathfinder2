@@ -1,6 +1,6 @@
+use crate::types::edge::EdgeDB;
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex};
-use crate::types::edge::EdgeDB;
 
 pub struct EdgeDBVersion {
     pub version_number: u64,
@@ -36,7 +36,10 @@ impl EdgeDbDispenser {
         let mut refs = self.refs.lock().unwrap();
         *refs.entry(*counter).or_insert(0) += 1;
 
-        Some(EdgeDBVersion { version_number: *counter, edges })
+        Some(EdgeDBVersion {
+            version_number: *counter,
+            edges,
+        })
     }
 
     pub fn update(&self, new_edgedb: EdgeDB) {
@@ -49,7 +52,9 @@ impl EdgeDbDispenser {
         // Clean up any version that has no reference and is not the latest one.
         let old_versions: Vec<u64> = versions
             .keys()
-            .filter(|&&version| version != *counter && !self.refs.lock().unwrap().contains_key(&version))
+            .filter(|&&version| {
+                version != *counter && !self.refs.lock().unwrap().contains_key(&version)
+            })
             .cloned()
             .collect();
 
@@ -71,7 +76,10 @@ impl EdgeDbDispenser {
                 }
             }
             _ => {
-                println!("Error: version {} not found in refs.", version.version_number);
+                println!(
+                    "Error: version {} not found in refs.",
+                    version.version_number
+                );
             }
         }
     }

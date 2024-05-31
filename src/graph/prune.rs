@@ -1,7 +1,7 @@
-use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 use crate::graph::Node;
 use crate::types::{Address, U256};
 use std::cmp::min;
+use std::collections::{BTreeMap, HashMap, HashSet, VecDeque};
 
 pub fn prune_flow(
     source: &Address,

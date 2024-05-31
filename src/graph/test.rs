@@ -2,8 +2,8 @@
 mod test {
     use crate::graph::compute_flow;
     use crate::rpc::call_context::CallContext;
-    use crate::types::{Address, Edge, U256};
     use crate::types::edge::EdgeDB;
+    use crate::types::{Address, Edge, U256};
 
     fn addresses() -> (Address, Address, Address, Address, Address, Address) {
         (
@@ -28,7 +28,15 @@ mod test {
             token: t,
             capacity: U256::from(10),
         }]);
-        let flow = compute_flow(&a, &b, &edges, U256::MAX, None, None, &CallContext::default());
+        let flow = compute_flow(
+            &a,
+            &b,
+            &edges,
+            U256::MAX,
+            None,
+            None,
+            &CallContext::default(),
+        );
         assert_eq!(
             flow,
             (
@@ -60,7 +68,15 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let flow = compute_flow(&a, &c, &edges, U256::MAX, None, None, &CallContext::default());
+        let flow = compute_flow(
+            &a,
+            &c,
+            &edges,
+            U256::MAX,
+            None,
+            None,
+            &CallContext::default(),
+        );
         assert_eq!(
             flow,
             (
@@ -112,7 +128,15 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None, &CallContext::default());
+        let mut flow = compute_flow(
+            &a,
+            &d,
+            &edges,
+            U256::MAX,
+            None,
+            None,
+            &CallContext::default(),
+        );
         flow.1.sort();
         assert_eq!(
             flow,
@@ -146,7 +170,15 @@ mod test {
                 ]
             )
         );
-        let mut pruned_flow = compute_flow(&a, &d, &edges, U256::from(6), None, None, &CallContext::default());
+        let mut pruned_flow = compute_flow(
+            &a,
+            &d,
+            &edges,
+            U256::from(6),
+            None,
+            None,
+            &CallContext::default(),
+        );
         pruned_flow.1.sort();
         assert_eq!(
             pruned_flow,
@@ -204,7 +236,15 @@ mod test {
                 capacity: U256::from(8),
             },
         ]);
-        let mut flow = compute_flow(&a, &d, &edges, U256::MAX, None, None, &CallContext::default());
+        let mut flow = compute_flow(
+            &a,
+            &d,
+            &edges,
+            U256::MAX,
+            None,
+            None,
+            &CallContext::default(),
+        );
         flow.1.sort();
         println!("{:?}", &flow.1);
         assert_eq!(flow.0, U256::from(9));

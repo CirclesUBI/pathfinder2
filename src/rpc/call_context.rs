@@ -1,9 +1,10 @@
+use crate::safe_db::edge_db_dispenser::{EdgeDBVersion, EdgeDbDispenser};
+use json::JsonValue;
+use std::default::Default;
 use std::fmt;
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use std::time::SystemTime;
-use json::JsonValue;
-use crate::safe_db::edge_db_dispenser::{EdgeDbDispenser, EdgeDBVersion};
 
 pub struct CallContext {
     pub client_ip: String,
@@ -14,8 +15,8 @@ pub struct CallContext {
     pub version: Option<EdgeDBVersion>,
 }
 
-impl CallContext {
-    pub(crate) fn default() -> CallContext {
+impl Default for CallContext {
+    fn default() -> CallContext {
         CallContext {
             client_ip: "".to_string(),
             request_id: JsonValue::Null,
@@ -28,7 +29,12 @@ impl CallContext {
 }
 
 impl CallContext {
-    pub fn new(client_ip: &str, request_id: &JsonValue, rpc_function: &str, dispenser: &Arc<EdgeDbDispenser>) -> Self {
+    pub fn new(
+        client_ip: &str,
+        request_id: &JsonValue,
+        rpc_function: &str,
+        dispenser: &Arc<EdgeDbDispenser>,
+    ) -> Self {
         let version = dispenser.get_latest_version();
         let context = CallContext {
             client_ip: client_ip.to_string(),
@@ -36,7 +42,7 @@ impl CallContext {
             rpc_function: rpc_function.to_string(),
             start_time: std::time::Instant::now(),
             dispenser: dispenser.clone(),
-            version: version,
+            version,
         };
 
         context.log("->", None, None);
@@ -61,8 +67,14 @@ impl CallContext {
 
         println!(
             "{} {} [{}] [{}] [{}] [{}] [{}] {}",
-            prefix, timestamp, thread_id_string, self.client_ip, self.request_id, self.rpc_function,
-            version.unwrap_or(&version_number.to_string()), suffix_str
+            prefix,
+            timestamp,
+            thread_id_string,
+            self.client_ip,
+            self.request_id,
+            self.rpc_function,
+            version.unwrap_or(&version_number.to_string()),
+            suffix_str
         );
     }
 
@@ -83,7 +95,11 @@ impl Drop for CallContext {
             return;
         }
         let call_duration = self.start_time.elapsed().as_millis();
-        self.log("<-", Some(&format!(" (took {} ms)", call_duration)), Some(&version_number.to_string()));
+        self.log(
+            "<-",
+            Some(&format!(" (took {} ms)", call_duration)),
+            Some(&version_number.to_string()),
+        );
     }
 }
 

@@ -1,11 +1,11 @@
+use crate::rpc::call_context::CallContext;
+use crate::rpc::rpc_functions::{compute_transfer, load_safes_binary, JsonRpcRequest};
+use crate::safe_db::edge_db_dispenser::EdgeDbDispenser;
+use json::JsonValue;
 use std::error::Error;
 use std::io::{BufRead, BufReader, Read, Write};
 use std::net::TcpStream;
-use std::sync::{Arc};
-use json::JsonValue;
-use crate::rpc::call_context::CallContext;
-use crate::rpc::rpc_functions::{compute_transfer, JsonRpcRequest, load_safes_binary};
-use crate::safe_db::edge_db_dispenser::EdgeDbDispenser;
+use std::sync::Arc;
 
 pub fn handle_connection(
     edge_dispenser: &Arc<EdgeDbDispenser>,
@@ -26,7 +26,11 @@ pub fn handle_connection(
         if let Some((code, message)) = error.as_ref() {
             call_context.log_message(&format!("Error (code: {}): {}", code, message));
         }
-        let response_json = json_rpc_serialize_response(id, result.map(Into::into), error.as_ref().map(|(c, m)| (*c, m.as_str())));
+        let response_json = json_rpc_serialize_response(
+            id,
+            result.map(Into::into),
+            error.as_ref().map(|(c, m)| (*c, m.as_str())),
+        );
         let rpc_response = json_rpc_response(response_json.to_string());
 
         call_context.log_message(&format!("Result: {:?}", response_json));
@@ -39,17 +43,38 @@ pub fn handle_connection(
         "load_safes_binary" => {
             match load_safes_binary(&request.params["file"].to_string(), &call_context) {
                 Ok(len) => respond(&mut socket, request.id, Some(len), None, &call_context),
-                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error loading safes: {}", e))), &call_context),
+                Err(e) => respond::<JsonValue>(
+                    &mut socket,
+                    request.id,
+                    None,
+                    Some((-32000, format!("Error loading safes: {}", e))),
+                    &call_context,
+                ),
             }?;
         }
         "compute_transfer" => {
             match compute_transfer(&request, &call_context) {
                 Ok(result) => respond(&mut socket, request.id, Some(result), None, &call_context),
-                Err(e) => respond::<JsonValue>(&mut socket, request.id, None, Some((-32000, format!("Error computing transfer path edges: {}", e))), &call_context),
+                Err(e) => respond::<JsonValue>(
+                    &mut socket,
+                    request.id,
+                    None,
+                    Some((
+                        -32000,
+                        format!("Error computing transfer path edges: {}", e),
+                    )),
+                    &call_context,
+                ),
             }?;
         }
         _ => {
-            respond::<JsonValue>(&mut socket, request.id, None, Some((-32601, "Method not found".to_string())), &call_context)?;
+            respond::<JsonValue>(
+                &mut socket,
+                request.id,
+                None,
+                Some((-32601, "Method not found".to_string())),
+                &call_context,
+            )?;
         }
     };
 
@@ -91,23 +116,32 @@ fn read_request(socket: &mut TcpStream) -> Result<JsonRpcRequest, Box<dyn Error>
     }
 }
 
-fn json_rpc_serialize_response(id: JsonValue, result: impl Into<JsonValue>, error: Option<(i64, &str)>) -> String {
+fn json_rpc_serialize_response(
+    id: JsonValue,
+    result: impl Into<JsonValue>,
+    error: Option<(i64, &str)>,
+) -> String {
     let mut response = json::object! {
         jsonrpc: "2.0",
         id: id,
     };
     if let Some((code, message)) = error {
-        response.insert("error", json::object! {
-            code: code,
-            message: message,
-        }).unwrap();
+        response
+            .insert(
+                "error",
+                json::object! {
+                    code: code,
+                    message: message,
+                },
+            )
+            .unwrap();
     } else {
         response.insert("result", result.into()).unwrap();
     }
     response.dump()
 }
 
-fn json_rpc_response(json_payload:String) -> String {
+fn json_rpc_response(json_payload: String) -> String {
     format!(
         "HTTP/1.1 200 OK\r\nContent-Length: {}\r\n\r\n{}",
         json_payload.len(),

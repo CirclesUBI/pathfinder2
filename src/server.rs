@@ -1,14 +1,70 @@
-use std::io::{Write};
-use std::net::{TcpListener};
+use crate::rpc::rpc_handler::handle_connection;
+// use crate::types::{ U256};
+// use num_bigint::BigUint;
+use std::error::Error;
+use std::fmt::{Debug, Display, Formatter};
+use std::io::Write;
+use std::net::TcpListener;
 use std::sync::mpsc::TrySendError;
 use std::sync::{mpsc, Arc, Mutex};
 use std::thread;
-use crate::rpc::rpc_handler::handle_connection;
+// use std::str::FromStr;
 
 use crate::safe_db::edge_db_dispenser::EdgeDbDispenser;
 
+struct InputValidationError(String);
+
+impl Error for InputValidationError {}
+
+impl Display for InputValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error: {}", self.0)
+    }
+}
+
+impl Debug for InputValidationError {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Error: {}", self.0)
+    }
+}
+
+// fn validate_and_parse_ethereum_address(address: &str) -> Result<Address, Box<dyn Error>> {
+//     let re = Regex::new(r"^0x[0-9a-fA-F]{40}$").unwrap();
+//     if re.is_match(address) {
+//         Ok(Address::from(address))
+//     } else {
+//         Err(Box::new(InputValidationError(format!(
+//             "Invalid Ethereum address: {}",
+//             address
+//         ))))
+//     }
+// }
+
+// fn validate_and_parse_u256(value_str: &str) -> Result<U256, Box<dyn Error>> {
+//     match BigUint::from_str(value_str) {
+//         Ok(parsed_value) => {
+//             if parsed_value > U256::MAX.into() {
+//                 Err(Box::new(InputValidationError(format!(
+//                     "Value {} is too large. Maximum value is {}.",
+//                     parsed_value,
+//                     U256::MAX
+//                 ))))
+//             } else {
+//                 Ok(U256::from_bigint_truncating(parsed_value))
+//             }
+//         }
+//         Err(e) => Err(Box::new(InputValidationError(format!(
+//             "Invalid value: {}. Couldn't parse value: {}",
+//             value_str, e
+//         )))),
+//     }
+// }
+
 pub fn start_server(listen_at: &str, queue_size: usize, threads: u64) {
-    println!("Starting pathfinder. Listening at {} with {} threads and queue size {}.", listen_at, threads, queue_size);
+    println!(
+        "Starting pathfinder. Listening at {} with {} threads and queue size {}.",
+        listen_at, threads, queue_size
+    );
 
     let edge_db_dispenser: Arc<EdgeDbDispenser> = Arc::new(EdgeDbDispenser::new());
 

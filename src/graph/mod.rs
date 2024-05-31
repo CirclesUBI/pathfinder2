@@ -2,11 +2,11 @@ use crate::types::Address;
 use std::fmt::{Display, Formatter};
 
 mod adjacencies;
+mod augmenting_path;
+mod extract_transfers;
 mod flow;
 mod prune;
 mod test;
-mod augmenting_path;
-mod extract_transfers;
 
 // An edge from the capacity network is
 // from, token, to -> capacity

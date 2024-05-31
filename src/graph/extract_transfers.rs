@@ -1,6 +1,6 @@
-use std::collections::{BTreeMap, HashMap};
 use crate::graph::{as_trust_node, Node};
 use crate::types::{Address, Edge, U256};
+use std::collections::{BTreeMap, HashMap};
 
 pub fn extract_transfers(
     source: &Address,
