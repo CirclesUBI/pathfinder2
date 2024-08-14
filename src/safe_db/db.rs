@@ -42,10 +42,15 @@ impl DB {
                     continue;
                 }
 
-                let receiver_safe = self.safes.get(send_to).unwrap();
-                if receiver_safe.organization {
-                    //println!("user {} can send {} token to orga {}", user, safe.token_address, send_to);
-                    organization_accepted_tokens.entry(safe.token_address).or_default().insert(*send_to);
+                if let Some(receiver_safe) = self.safes.get(send_to) {
+                    if receiver_safe.organization {
+                        // println!("user {} can send {} token to orga {}", user, safe.token_address, send_to);
+                        organization_accepted_tokens.entry(safe.token_address).or_default().insert(*send_to);
+                    }
+                } else {
+                    // Skip this round if there's no receiver_safe
+                    println!("Couldn't find a 'receiver_safe' for {}", send_to);
+                    continue;
                 }
             }
         }
